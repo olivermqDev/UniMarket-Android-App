@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "654769935561",
+    "firebase_url": "https://unimarket-c6d2a-default-rtdb.firebaseio.com",
+    "project_id": "unimarket-c6d2a",
+    "storage_bucket": "unimarket-c6d2a.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:654769935561:android:0684def646d7411b136918",
+        "android_client_info": {
+          "package_name": "com.atom.unimarket"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "654769935561-q93i0lk19usnbhapm452s3i6fr3c549q.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.atom.unimarket",
+            "certificate_hash": "73a8d79448b1e75dd5616be7952c68e62a26b5c9"
+          }
+        },
+        {
+          "client_id": "654769935561-lsvr75ea16h5u98sec25loghn0q8ldmr.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB-IbJ6g4hudldu50wafMopdAyaJGNP56o"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "654769935561-lsvr75ea16h5u98sec25loghn0q8ldmr.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
