@@ -17,6 +17,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.atom.unimarket.presentation.chatbot.ChatbotViewModel
 import com.atom.unimarket.presentation.chat.ChatViewModel
+import com.atom.unimarket.presentation.dashboard.DashboardViewModel
 import com.atom.unimarket.presentation.products.ProductViewModel
 import com.atom.unimarket.presentation.screens.*
 
@@ -27,6 +28,7 @@ fun RootNavigation() {
     val productViewModel: ProductViewModel = viewModel()
     val chatViewModel: ChatViewModel = viewModel()
     val chatbotViewModel: ChatbotViewModel = viewModel()
+    val dashboardViewModel : DashboardViewModel = viewModel() //Se agrega el Dashboard
 
     NavHost(
         navController = mainNavController,
@@ -90,7 +92,13 @@ fun RootNavigation() {
                 chatbotViewModel = chatbotViewModel
             )
         }
-
+        //Se agrego el Dashboard
+        composable(BottomBarScreen.Dashboard.route) {
+            DashboardScreen(
+                navController = mainNavController,
+                dashboardViewModel = dashboardViewModel
+            )
+        }
         // Placeholders para Favoritos y Carrito (usando strings simples por ahora)
         // --- NUEVO: Registrar las pantallas de Favoritos y Carrito ---
         // --- NUEVO: Registrar las pantallas de Favoritos y Carrito ---

@@ -3,6 +3,7 @@ plugins {
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.google.gms.google.services)
+
 }
 
 android {
@@ -50,6 +51,7 @@ dependencies {
     implementation(libs.androidx.compose.ui.graphics)
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
+    implementation(libs.androidx.room.ktx)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
@@ -61,6 +63,10 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.3")
     // Importa el Bill of Materials (BOM) de Firebase. NO USES UNA VERSIÓN ESPECÍFICA AQUÍ.
     implementation(platform("com.google.firebase:firebase-bom:33.1.2"))
+    // Libreria para el dashboard
+    //implementation("com.patrykandpatrick.vico:compose:2.0.0-beta.1")
+    implementation("com.patrykandpatrick.vico:compose:1.16.1")
+    implementation("com.patrykandpatrick.vico:core:1.16.1")
 
     // Añade la dependencia para Firebase Authentication
     implementation("com.google.firebase:firebase-auth-ktx")

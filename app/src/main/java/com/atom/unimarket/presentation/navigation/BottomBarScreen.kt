@@ -5,6 +5,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Chat
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.PieChart
 import androidx.compose.ui.graphics.vector.ImageVector
 
 sealed class BottomBarScreen(
@@ -13,7 +14,7 @@ sealed class BottomBarScreen(
     val icon: ImageVector
 ) {
     object Home : BottomBarScreen(
-        route = "PRODUCTS_GRAPH", // Un nombre para el grafo anidado
+        route = "PRODUCTS_GRAPH",
         title = "Inicio",
         icon = Icons.Default.Home
     )
@@ -28,5 +29,11 @@ sealed class BottomBarScreen(
         route = AppScreen.Profile.route,
         title = "Perfil",
         icon = Icons.Default.Person
+    )
+
+    object Dashboard : BottomBarScreen(
+        route = "DASHBOARD_SCREEN",
+        title = "Dashboard",
+        icon = Icons.Default.PieChart
     )
 }
