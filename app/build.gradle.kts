@@ -67,6 +67,9 @@ dependencies {
     // Para Firebase Storage (almacenamiento de archivos como imágenes)
     implementation("com.google.firebase:firebase-storage-ktx")
 
+    // Google AI (Gemini)
+    implementation("com.google.ai.client.generativeai:generativeai:0.9.0")
+
     // Librería para cargar imágenes desde una URL de forma sencilla en Jetpack Compose
     implementation("io.coil-kt:coil-compose:2.6.0")
     // Para la base de datos en tiempo real Cloud Firestore

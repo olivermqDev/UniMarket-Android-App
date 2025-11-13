@@ -86,8 +86,7 @@ fun RootNavigation() {
 
         composable(route = AppScreen.Chatbot.route) {
             ChatbotScreen(
-                navController = mainNavController,
-                chatbotViewModel = chatbotViewModel
+                onNavigateBack = { mainNavController.navigateUp() }
             )
         }
 
