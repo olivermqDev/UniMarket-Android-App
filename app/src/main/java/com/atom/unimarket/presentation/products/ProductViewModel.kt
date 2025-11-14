@@ -16,6 +16,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import java.util.UUID
+import org.koin.core.component.KoinComponent // <-- 1. IMPORTAR
 
 // --- NUEVO: Añadimos la lista de favoritos al estado ---
 data class ProductState(
@@ -36,11 +37,19 @@ data class CartState(
     val isLoading: Boolean = false,
     val error: String? = null
 )
-class ProductViewModel : ViewModel() {
 
-    private val firestore = FirebaseFirestore.getInstance()
-    private val auth = FirebaseAuth.getInstance()
-    private val storage = FirebaseStorage.getInstance()
+// --- INICIO DE CAMBIOS ---
+class ProductViewModel(
+    private val firestore: FirebaseFirestore,
+    private val auth: FirebaseAuth,
+    private val storage: FirebaseStorage
+) : ViewModel(), KoinComponent { // <-- 2. AÑADIR KoinComponent
+// --- FIN DE CAMBIOS ---
+
+    // --- ESTAS LÍNEAS SE ELIMINAN ---
+    // private val firestore = FirebaseFirestore.getInstance()
+    // private val auth = FirebaseAuth.getInstance()
+    // private val storage = FirebaseStorage.getInstance()
 
     private val _productState = MutableStateFlow(ProductState())
     val productState = _productState.asStateFlow()

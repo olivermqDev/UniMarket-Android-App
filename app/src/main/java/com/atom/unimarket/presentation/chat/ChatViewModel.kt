@@ -67,7 +67,12 @@ class ChatViewModel : ViewModel() {
             .orderBy("lastMessage.timestamp", Query.Direction.DESCENDING)
             .addSnapshotListener { snapshot, error ->
                 if (error != null) {
-                    _conversationsUiState.update { it.copy(isLoading = false, error = "Error al cargar conversaciones.") }
+                    _conversationsUiState.update {
+                        it.copy(
+                            isLoading = false,
+                            error = "Error al cargar conversaciones."
+                        )
+                    }
                     return@addSnapshotListener
                 }
                 if (snapshot != null) {
@@ -88,7 +93,12 @@ class ChatViewModel : ViewModel() {
             .orderBy("timestamp", Query.Direction.ASCENDING)
             .addSnapshotListener { snapshot, error ->
                 if (error != null) {
-                    _uiState.update { it.copy(isLoading = false, error = "Error al cargar mensajes: ${error.message}") }
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            error = "Error al cargar mensajes: ${error.message}"
+                        )
+                    }
                     return@addSnapshotListener
                 }
                 if (snapshot != null) {
@@ -132,11 +142,17 @@ class ChatViewModel : ViewModel() {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
             try {
-                val currentUserUid = auth.currentUser?.uid ?: throw Exception("Usuario no autenticado")
+                val currentUserUid =
+                    auth.currentUser?.uid ?: throw Exception("Usuario no autenticado")
                 // No permitimos que un vendedor inicie un chat consigo mismo
                 if (currentUserUid == product.sellerUid) {
                     // Podríamos mostrar un Toast o un mensaje en la UI
-                    _uiState.update { it.copy(isLoading = false, error = "No puedes iniciar un chat sobre tu propio producto.") }
+                    _uiState.update {
+                        it.copy(
+                            isLoading = false,
+                            error = "No puedes iniciar un chat sobre tu propio producto."
+                        )
+                    }
                     return@launch
                 }
                 val sellerUid = product.sellerUid
@@ -177,7 +193,12 @@ class ChatViewModel : ViewModel() {
                 onComplete(chatId)
 
             } catch (e: Exception) {
-                _uiState.update { it.copy(isLoading = false, error = "Error al iniciar el chat: ${e.message}") }
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        error = "Error al iniciar el chat: ${e.message}"
+                    )
+                }
             }
         }
     }
