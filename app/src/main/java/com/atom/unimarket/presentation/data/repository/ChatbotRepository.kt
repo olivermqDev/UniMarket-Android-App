@@ -9,9 +9,9 @@ class ChatbotRepository {
 
     private val firestore = FirebaseFirestore.getInstance()
 
-    // Configura tu modelo generativo con la API Key
+    // Configurar el modelo generativo con la API Key
     private val generativeModel = GenerativeModel(
-        modelName = "gemini-2.0-flash-lite", // Usa un modelo válido
+        modelName = "gemini-2.0-flash-lite", // un modelo válido
         apiKey = "AIzaSyDqaQvdHElXCLZG-LTOCl0Ntk0E67WJ_yU"
     )
 
