@@ -19,7 +19,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
+// --- INICIO DE CAMBIOS ---
+// import androidx.lifecycle.viewmodel.compose.viewModel // <-- 1. ESTE SE VA
+import org.koin.androidx.compose.koinViewModel // <-- 2. AÑADIMOS ESTE
+// --- FIN DE CAMBIOS ---
 import androidx.navigation.NavController
 import com.atom.unimarket.presentation.chatbot.ChatbotMessage
 import com.atom.unimarket.presentation.chatbot.ChatbotViewModel
@@ -30,7 +33,9 @@ import kotlinx.coroutines.launch
 @Composable
 fun ChatbotScreen(
     navController: NavController,
-    chatbotViewModel: ChatbotViewModel = viewModel()
+    // --- INICIO DE CAMBIOS ---
+    chatbotViewModel: ChatbotViewModel = koinViewModel() // <-- 3. CAMBIADO
+    // --- FIN DE CAMBIOS ---
 ) {
     val uiState by chatbotViewModel.uiState.collectAsState()
     var userInput by remember { mutableStateOf("") }

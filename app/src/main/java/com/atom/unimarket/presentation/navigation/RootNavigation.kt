@@ -9,7 +9,10 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.lifecycle.viewmodel.compose.viewModel
+// --- INICIO DE CAMBIOS ---
+// import androidx.lifecycle.viewmodel.compose.viewModel // <-- 1. ESTE SE VA
+import org.koin.androidx.compose.koinViewModel // <-- 2. AÑADIMOS ESTE
+// --- FIN DE CAMBIOS ---
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -25,10 +28,12 @@ import com.atom.unimarket.presentation.screens.*
 @Composable
 fun RootNavigation() {
     val mainNavController = rememberNavController()
-    val productViewModel: ProductViewModel = viewModel()
-    val chatViewModel: ChatViewModel = viewModel()
-    val chatbotViewModel: ChatbotViewModel = viewModel()
-    val dashboardViewModel : DashboardViewModel = viewModel() //Se agrega el Dashboard
+    // --- INICIO DE CAMBIOS ---
+    val productViewModel: ProductViewModel = koinViewModel() // <-- 3. CAMBIADO
+    val chatViewModel: ChatViewModel = koinViewModel() // <-- 3. CAMBIADO
+    val chatbotViewModel: ChatbotViewModel = koinViewModel() // <-- 3. CAMBIADO
+    val dashboardViewModel : DashboardViewModel = koinViewModel() // <-- 3. CAMBIADO
+    // --- FIN DE CAMBIOS ---
 
     NavHost(
         navController = mainNavController,

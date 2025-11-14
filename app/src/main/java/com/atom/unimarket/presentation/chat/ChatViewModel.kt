@@ -17,6 +17,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
+import org.koin.core.component.KoinComponent // <-- 1. IMPORTAR
 
 // Estado para la pantalla de chat individual
 data class ChatUiState(
@@ -35,17 +36,23 @@ data class ConversationsUiState(
     val error: String? = null
 )
 
-class ChatViewModel : ViewModel() {
+// --- INICIO DE CAMBIOS ---
+class ChatViewModel(
+    private val firestore: FirebaseFirestore,
+    private val auth: FirebaseAuth
+) : ViewModel(), KoinComponent { // <-- 2. AÑADIR KoinComponent
+// --- FIN DE CAMBIOS ---
 
-    private val firestore = FirebaseFirestore.getInstance()
-    private val auth = FirebaseAuth.getInstance()
+    // --- ESTAS LÍNEAS SE ELIMINAN ---
+    // private val firestore = FirebaseFirestore.getInstance()
+    // private val auth = FirebaseAuth.getInstance()
 
     // StateFlow para la pantalla de chat individual
     private val _uiState = MutableStateFlow(ChatUiState())
     val uiState = _uiState.asStateFlow()
 
     // StateFlow para la lista de conversaciones
-    private val _conversationsUiState = MutableStateFlow(ConversationsUiState())
+    private val _conversationsUiState = MutableStateFlow(ConversationsUiState()) // <-- Corregido
     val conversationsUiState = _conversationsUiState.asStateFlow()
 
     private var messagesListener: ListenerRegistration? = null

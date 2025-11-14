@@ -23,8 +23,8 @@ val appModule = module {
     // --- Definición de ViewModels ---
     // Koin creará una nueva instancia de ViewModel para cada pantalla que lo necesite
 
-    // AuthViewModel necesita FirebaseAuth y FirebaseFirestore
-    viewModel { AuthViewModel(get(), get()) }
+    // AuthViewModel necesita Auth, Firestore, y Storage
+    viewModel { AuthViewModel(get(), get(), get()) }
 
     // ProductViewModel necesita las 3 instancias de Firebase
     viewModel { ProductViewModel(get(), get(), get()) }

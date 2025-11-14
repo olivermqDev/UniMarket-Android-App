@@ -25,7 +25,10 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
+// --- INICIO DE CAMBIOS ---
+// import androidx.lifecycle.viewmodel.compose.viewModel // <-- 1. ESTE SE VA
+import org.koin.androidx.compose.koinViewModel // <-- 2. AÑADIMOS ESTE
+// --- FIN DE CAMBIOS ---
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.atom.unimarket.R
@@ -36,7 +39,9 @@ import com.atom.unimarket.presentation.navigation.AppScreen
 @Composable
 fun ProfileScreen(
     navController: NavController,
-    authViewModel: AuthViewModel = viewModel()
+    // --- INICIO DE CAMBIOS ---
+    authViewModel: AuthViewModel = koinViewModel() // <-- 3. CAMBIADO
+    // --- FIN DE CAMBIOS ---
 ) {
     val authState by authViewModel.authState.collectAsState()
     val user = authState.user
