@@ -93,8 +93,10 @@ fun RootNavigation() {
 
         composable(route = AppScreen.Chatbot.route) {
             ChatbotScreen(
-                navController = mainNavController,
-                chatbotViewModel = chatbotViewModel
+                chatbotViewModel = chatbotViewModel, // <-- Este está bien
+                onNavigateBack = { // <-- Este es el parámetro que faltaba
+                    mainNavController.popBackStack() // <-- Aquí pones la lógica de navegación
+                }
             )
         }
         //Se agrego el Dashboard
