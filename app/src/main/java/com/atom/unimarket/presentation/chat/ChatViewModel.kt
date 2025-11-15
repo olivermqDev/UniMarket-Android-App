@@ -40,14 +40,8 @@ data class ConversationsUiState(
 class ChatViewModel(
     private val firestore: FirebaseFirestore,
     private val auth: FirebaseAuth
-) : ViewModel(), KoinComponent { // <-- 2. AÑADIR KoinComponent
-// --- FIN DE CAMBIOS ---
+) : ViewModel(), KoinComponent {
 
-    // --- ESTAS LÍNEAS SE ELIMINAN ---
-    // private val firestore = FirebaseFirestore.getInstance()
-    // private val auth = FirebaseAuth.getInstance()
-
-    // StateFlow para la pantalla de chat individual
     private val _uiState = MutableStateFlow(ChatUiState())
     val uiState = _uiState.asStateFlow()
 

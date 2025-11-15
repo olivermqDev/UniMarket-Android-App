@@ -148,7 +148,7 @@ class AuthViewModel(
                 // Indicador de carga (opcional pero bueno para la UX)
                 _authState.value = _authState.value.copy(isLoading = true)
 
-                val imageRef = storage.reference.child("profile_images/${UUID.randomUUID()}.jpg")
+                val imageRef = storage.reference.child("profile_images/${userId}/${UUID.randomUUID()}.jpg")
                 val uploadTask = imageRef.putFile(imageUri).await()
                 val downloadUrl = uploadTask.storage.downloadUrl.await().toString()
 
