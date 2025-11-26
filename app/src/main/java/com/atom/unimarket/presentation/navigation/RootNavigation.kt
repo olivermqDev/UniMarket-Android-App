@@ -99,6 +99,7 @@ fun RootNavigation() {
                 dashboardViewModel = dashboardViewModel
             )
         }
+
         // Placeholders para Favoritos y Carrito (usando strings simples por ahora)
         // --- NUEVO: Registrar las pantallas de Favoritos y Carrito ---
         // --- NUEVO: Registrar las pantallas de Favoritos y Carrito ---
@@ -112,6 +113,13 @@ fun RootNavigation() {
 
         composable(route = "cart_screen") {
             CartScreen(
+                navController = mainNavController,
+                productViewModel = productViewModel
+            )
+        }
+        // --- NUEVO : Añadida ruta a MyProductsScreen
+        composable(route = "my_products_screen") {
+            MyProductsScreen(
                 navController = mainNavController,
                 productViewModel = productViewModel
             )

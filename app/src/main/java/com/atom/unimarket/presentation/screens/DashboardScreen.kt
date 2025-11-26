@@ -40,8 +40,6 @@ fun DashboardScreen(
     val combinedChartData by dashboardViewModel.combinedChartData.observeAsState()
     val productStatusData by dashboardViewModel.productStatusData.observeAsState()
     val favoritesData by dashboardViewModel.favoritesData.observeAsState()
-    val userFlowData by dashboardViewModel.userFlowData.observeAsState()
-    val dailyActivityData by dashboardViewModel.dailyActivityData.observeAsState()
     val isLoading by dashboardViewModel.isLoading.observeAsState(false)
 
     LaunchedEffect(Unit) {
@@ -73,7 +71,7 @@ fun DashboardScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Mi Dashboard UniMarket",
+                    text = "Mis Estadisticas",
                     style = MaterialTheme.typography.headlineMedium,
                     color = MaterialTheme.colorScheme.primary
                 )
@@ -141,7 +139,7 @@ fun DashboardScreen(
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     if (!combinedChartData.isNullOrEmpty()) {
-                        FakeCombinedChart(combinedChartData!!)
+                        CombinedChart(combinedChartData!!)
                     } else {
                         Box(modifier = Modifier.fillMaxWidth().height(260.dp), contentAlignment = Alignment.Center) {
                             Text("No hay datos combinados")
@@ -197,54 +195,11 @@ fun DashboardScreen(
                 }
             }
 
-            // 6. Actividad de Usuarios (24h)
-            Card(
-                modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text(
-                        text = "👥 Actividad de Usuarios (24h)",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    if (!userFlowData.isNullOrEmpty()) {
-                        FakeUserFlowAreaChart(userFlowData!!)
-                    } else {
-                        Box(modifier = Modifier.fillMaxWidth().height(240.dp), contentAlignment = Alignment.Center) {
-                            Text("No hay datos de actividad")
-                        }
-                    }
-                }
-            }
-
-            // 7. Actividad Diaria
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text(
-                        text = "📱 Actividad Diaria",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    if (!dailyActivityData.isNullOrEmpty()) {
-                        DailyActivityLineChart(dailyActivityData!!)
-                    } else {
-                        Box(modifier = Modifier.fillMaxWidth().height(220.dp), contentAlignment = Alignment.Center) {
-                            Text("No hay datos de actividad")
-                        }
-                    }
-                }
-            }
         }
     }
 }
 
-//Prueba 1
+
 @Composable
 fun SalesColumnChart(salesData: List<Pair<String, Float>>) {
     val months = salesData.map { it.first }
@@ -259,13 +214,13 @@ fun SalesColumnChart(salesData: List<Pair<String, Float>>) {
         model = chartModel,
         startAxis = rememberStartAxis(
             label = textComponent {
-                color = MaterialTheme.colorScheme.onSurface.hashCode() // CORRECCIÓN
+                color = MaterialTheme.colorScheme.onSurface.hashCode()
             }
         ),
         bottomAxis = rememberBottomAxis(
             valueFormatter = { x, _ -> months.getOrNull(x.toInt()) ?: "" },
             label = textComponent {
-                color = MaterialTheme.colorScheme.onSurface.hashCode() // CORRECCIÓN
+                color = MaterialTheme.colorScheme.onSurface.hashCode()
             }
         ),
         modifier = Modifier
@@ -274,119 +229,12 @@ fun SalesColumnChart(salesData: List<Pair<String, Float>>) {
     )
 }
 
-//Prueba 2:
 @Composable
-fun DailyActivityLineChart(dailyData: List<Pair<String, Float>>) {
-    val days = dailyData.map { it.first }
-    val values = dailyData.map { it.second }
+fun CombinedChart(combinedChartData: List<Pair<String, Float>>) {
+    val months = combinedChartData.map { it.first }
+    val sales = combinedChartData.map { it.second }
 
-    val chartModel = entryModelOf(
-        *values.mapIndexed { index, value -> index.toFloat() to value }.toTypedArray()
-    )
-
-    Chart(
-        chart = lineChart(),
-        model = chartModel,
-        startAxis = rememberStartAxis(
-            label = textComponent {
-                color = MaterialTheme.colorScheme.onSurface.hashCode() // CORRECCIÓN
-            }
-        ),
-        bottomAxis = rememberBottomAxis(
-            valueFormatter = { x, _ -> days.getOrNull(x.toInt()) ?: "" },
-            label = textComponent {
-                color = MaterialTheme.colorScheme.onSurface.hashCode() // CORRECCIÓN
-            }
-        ),
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(220.dp)
-    )
-}
-
-//Prueba 3 :
-@Composable
-fun FakeUserFlowAreaChart(userFlowData: List<Pair<String, Float>>) {
-    val hours = (0..23).map { it.toString() }
-    val values = listOf(
-        10f, 15f, 20f, 30f, 50f, 80f, 120f, 150f, 180f, 200f, 210f, 220f,
-        250f, 260f, 240f, 220f, 200f, 170f, 140f, 100f, 80f, 50f, 30f, 20f
-    )
-
-    val model = entryModelOf(
-        *values.mapIndexed { i, v -> i.toFloat() to v }.toTypedArray()
-    )
-
-    // Obtener los colores fuera del Canvas
-    val primaryColor = MaterialTheme.colorScheme.primary
-    val primaryWithAlpha = primaryColor.copy(alpha = 0.18f)
-
-    Box(modifier = Modifier
-        .fillMaxWidth()
-        .height(240.dp)
-    ) {
-        Chart(
-            chart = com.patrykandpatrick.vico.compose.chart.line.lineChart(),
-            model = model,
-            startAxis = rememberStartAxis(
-                label = textComponent {
-                    color = MaterialTheme.colorScheme.onSurface.hashCode()
-                }
-            ),
-            bottomAxis = rememberBottomAxis(
-                valueFormatter = { x, _ -> hours.getOrNull(x.toInt()) ?: "" },
-                label = textComponent {
-                    color = MaterialTheme.colorScheme.onSurface.hashCode()
-                }
-            ),
-            modifier = Modifier.matchParentSize()
-        )
-
-        Canvas(modifier = Modifier.matchParentSize()) {
-            if (values.isEmpty()) return@Canvas
-            val w = size.width
-            val h = size.height
-            val count = values.size
-            val maxV = (values.maxOrNull() ?: 1f)
-
-            val points = values.mapIndexed { i, v ->
-                val x = i * (w / (count - 1).coerceAtLeast(1))
-                val y = h - (v / maxV) * h
-                Offset(x, y)
-            }
-
-            // draw filled polygon (area)
-            val path = androidx.compose.ui.graphics.Path().apply {
-                if (points.isNotEmpty()) {
-                    moveTo(points.first().x, h) // bottom-left
-                    points.forEach { lineTo(it.x, it.y) }
-                    lineTo(points.last().x, h) // bottom-right
-                    close()
-                }
-            }
-            drawPath(path, color = primaryWithAlpha)
-
-            // draw line on top
-            for (i in 0 until points.size - 1) {
-                drawLine(
-                    color = primaryColor,
-                    start = points[i],
-                    end = points[i + 1],
-                    strokeWidth = 3f,
-                    cap = StrokeCap.Round
-                )
-            }
-        }
-    }
-}
-
-//Prueba 4 :
-@Composable
-fun FakeCombinedChart(combinedChartData: List<Pair<String, Float>>) {
-    val months = listOf("Ene", "Feb", "Mar", "Abr", "May", "Jun")
-    val sales = listOf(100f, 180f, 90f, 220f, 150f, 260f)
-
-    // Simple average line
+    // Simple average line (moving average de ventana 3)
     val avg = sales.mapIndexed { i, _ ->
         val window = listOf(i - 1, i, i + 1).mapNotNull { idx -> sales.getOrNull(idx) }
         window.average().toFloat()
@@ -419,36 +267,38 @@ fun FakeCombinedChart(combinedChartData: List<Pair<String, Float>>) {
             modifier = Modifier.matchParentSize()
         )
 
-        Canvas(modifier = Modifier.matchParentSize()) {
-            if (sales.isEmpty()) return@Canvas
-            val w = size.width
-            val h = size.height
-            val count = sales.size
-            val maxV = (sales + avg).maxOrNull() ?: 1f
+        androidx.compose.ui.platform.LocalDensity.current.run {
+            Canvas(modifier = Modifier.matchParentSize()) {
+                if (sales.isEmpty()) return@Canvas
+                val w = size.width
+                val h = size.height
+                val count = sales.size
+                val maxV = (sales + avg).maxOrNull() ?: 1f
 
-            val linePoints = avg.mapIndexed { i, v ->
-                val x = i * (w / (count - 1).coerceAtLeast(1))
-                val y = h - (v / maxV) * h
-                Offset(x, y)
-            }
+                val linePoints = avg.mapIndexed { i, v ->
+                    val x = i * (w / (count - 1).coerceAtLeast(1))
+                    val y = h - (v / maxV) * h
+                    Offset(x, y)
+                }
 
-            for (i in 0 until linePoints.size - 1) {
-                drawLine(
-                    color = secondaryColor,
-                    start = linePoints[i],
-                    end = linePoints[i + 1],
-                    strokeWidth = 4f,
-                    cap = StrokeCap.Round
-                )
-            }
+                for (i in 0 until linePoints.size - 1) {
+                    drawLine(
+                        color = secondaryColor,
+                        start = linePoints[i],
+                        end = linePoints[i + 1],
+                        strokeWidth = 4f,
+                        cap = StrokeCap.Round
+                    )
+                }
 
-            // draw small circles on points
-            linePoints.forEach {
-                drawCircle(
-                    color = secondaryColor,
-                    radius = 6f,
-                    center = it
-                )
+
+                linePoints.forEach {
+                    drawCircle(
+                        color = secondaryColor,
+                        radius = 6f,
+                        center = it
+                    )
+                }
             }
         }
     }
@@ -603,34 +453,6 @@ fun FavoritesStats(favoritesData: List<Pair<String, Int>>) {
             }
         }
     }
-}
-@Composable
-fun SalesChart(salesData: List<Pair<String, Float>>) {
-    val months = salesData.map { it.first }
-    val values = salesData.map { it.second }
-
-    val chartModel = entryModelOf(
-        *values.mapIndexed { index, value -> index.toFloat() to value }.toTypedArray()
-    )
-
-    Chart(
-        chart = columnChart(),
-        model = chartModel,
-        startAxis = rememberStartAxis(
-            label = textComponent {
-                color = MaterialTheme.colorScheme.onSurface.hashCode()
-            }
-        ),
-        bottomAxis = rememberBottomAxis(
-            valueFormatter = { x, _ -> months.getOrNull(x.toInt()) ?: "" },
-            label = textComponent {
-                color = MaterialTheme.colorScheme.onSurface.hashCode()
-            }
-        ),
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(200.dp)
-    )
 }
 
 @Composable

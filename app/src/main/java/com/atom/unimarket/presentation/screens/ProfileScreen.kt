@@ -14,6 +14,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons // --- NUEVO ---
 import androidx.compose.material.icons.outlined.FavoriteBorder // --- NUEVO ---
+import androidx.compose.material.icons.outlined.Shop
 import androidx.compose.material.icons.outlined.ShoppingCart // --- NUEVO ---
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -116,6 +117,16 @@ fun ProfileScreen(
                 navController.navigate("cart_screen")
             }
         )
+        // ---NUEVO CAMBIO : Opcion para ver productos en venta
+        ListItem(
+            headlineContent = { Text("Mis productos en venta") },
+            leadingContent = { Icon(Icons.Outlined.Shop, contentDescription = null) },
+            modifier = Modifier.clickable {
+                // Navegaremos a la nueva pantalla de productos en venta
+                navController.navigate("my_products_screen")
+            }
+        )
+
         Divider()
         // --- FIN DE CAMBIOS ---
 

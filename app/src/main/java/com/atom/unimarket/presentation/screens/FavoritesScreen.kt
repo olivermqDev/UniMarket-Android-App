@@ -18,6 +18,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.atom.unimarket.presentation.navigation.AppScreen
+import com.atom.unimarket.presentation.navigation.BottomBarScreen
 import com.atom.unimarket.presentation.products.ProductViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -38,7 +39,7 @@ fun FavoritesScreen(
             TopAppBar(
                 title = { Text("Mis Favoritos") },
                 navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
+                    IconButton(onClick = {  navController.popBackStack()  }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver atrás")
                     }
                 }

@@ -126,6 +126,7 @@ class ProductViewModel : ViewModel() {
     private fun filterProducts() {
         val query = _productState.value.searchQuery
         val category = _productState.value.selectedCategory
+        val currentUserId = getCurrentUserId()
 
         val filteredList = allProducts.filter { product ->
             val matchesSearch = if (query.isBlank()) {
@@ -138,7 +139,10 @@ class ProductViewModel : ViewModel() {
             } else {
                 product.category.equals(category, ignoreCase = true)
             }
-            matchesSearch && matchesCategory
+            // --- NUEVO: Excluir productos del usuario actual
+            val isNotOwnProduct = product.sellerUid != currentUserId
+
+            matchesSearch && matchesCategory && isNotOwnProduct
         }
 
         _productState.update { it.copy(isLoading = false, products = filteredList) }
@@ -248,7 +252,36 @@ class ProductViewModel : ViewModel() {
             }
         }
     }
+    // ---NUEVO: Funcion para que el usuario vea los productos que tiene en venta
+    fun loadUserProducts() {
+        val userId = getCurrentUserId() ?: return
 
+        _productState.update { it.copy(isLoading = true) }
+
+        // Escuchar solo los productos del usuario actual
+        productListener?.remove()
+        productListener = firestore.collection("products")
+            .whereEqualTo("sellerUid", userId)
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    _productState.update {
+                        it.copy(isLoading = false, error = "Error: ${error.message}")
+                    }
+                    return@addSnapshotListener
+                }
+
+                if (snapshot != null) {
+                    val userProducts = snapshot.toObjects(Product::class.java)
+                    _productState.update {
+                        it.copy(
+                            isLoading = false,
+                            products = userProducts,
+                            error = null
+                        )
+                    }
+                }
+            }
+    }
     // --- INICIO: LÓGICA DEL CARRITO DE COMPRAS ---
 
     fun addToCart(productId: String) {

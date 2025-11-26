@@ -11,6 +11,7 @@ import com.google.firebase.ktx.Firebase
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import java.util.Calendar
+import java.util.Date
 
 class DashboardViewModel : ViewModel() {
 
@@ -34,12 +35,6 @@ class DashboardViewModel : ViewModel() {
     private val _favoritesData = MutableLiveData<List<Pair<String, Int>>>()
     val favoritesData: LiveData<List<Pair<String, Int>>> = _favoritesData
 
-    private val _userFlowData = MutableLiveData<List<Pair<String, Float>>>()
-    val userFlowData: LiveData<List<Pair<String, Float>>> = _userFlowData
-
-    private val _dailyActivityData = MutableLiveData<List<Pair<String, Float>>>()
-    val dailyActivityData: LiveData<List<Pair<String, Float>>> = _dailyActivityData
-
     private val _isLoading = MutableLiveData<Boolean>()
     val isLoading: LiveData<Boolean> = _isLoading
 
@@ -53,8 +48,6 @@ class DashboardViewModel : ViewModel() {
                 launch { loadCombinedChartData() }.join()
                 launch { loadProductStatusData() }.join()
                 launch { loadFavoritesData() }.join()
-                launch { loadUserFlowData() }.join()
-                launch { loadDailyActivityData() }.join()
 
             } catch (e: Exception) {
                 // En caso de error, cargar datos mock
@@ -68,7 +61,7 @@ class DashboardViewModel : ViewModel() {
     // 1. Ventas Mensuales
     private suspend fun loadSalesColumnData() {
         try {
-            /*
+/*
             // CÓDIGO FIRESTORE (COMENTADO)
             val snapshot = db.collection("products")
                 .whereEqualTo("sellerUid", currentUserId)
@@ -95,8 +88,8 @@ class DashboardViewModel : ViewModel() {
                 month to salesByMonth.getOrDefault(month, 0f)
             }
             _salesColumnData.postValue(result)
-            */
 
+*/
             // DATOS FALSOS
             val months = listOf("Ene", "Feb", "Mar", "Abr", "May", "Jun")
             val sales = listOf(1200f, 1800f, 900f, 2200f, 1600f, 2500f)
@@ -113,7 +106,7 @@ class DashboardViewModel : ViewModel() {
     // 2. Ventas por Categoría
     private suspend fun loadCategoryData() {
         try {
-            /*
+/*
             // CÓDIGO FIRESTORE (COMENTADO)
             val snapshot = db.collection("products")
                 .whereEqualTo("sellerUid", currentUserId)
@@ -134,7 +127,7 @@ class DashboardViewModel : ViewModel() {
                 category to categoriesRevenue.getOrDefault(category, 0f)
             }
             _categoryData.postValue(result)
-            */
+*/
 
             // DATOS FALSOS
             val categories = listOf("Tecnología", "Libros", "Ropa", "Mobiliario", "Deportes", "Otros")
@@ -151,7 +144,7 @@ class DashboardViewModel : ViewModel() {
     // 3. Ventas vs Promedio Móvil
     private suspend fun loadCombinedChartData() {
         try {
-            /*
+/*
             // CÓDIGO FIRESTORE (COMENTADO)
             val snapshot = db.collection("products")
                 .whereEqualTo("sellerUid", currentUserId)
@@ -179,7 +172,7 @@ class DashboardViewModel : ViewModel() {
             }
             val result = orderedMonths.zip(salesData)
             _combinedChartData.postValue(result)
-            */
+*/
 
             // DATOS FALSOS
             val months = listOf("Ene", "Feb", "Mar", "Abr", "May", "Jun")
@@ -196,7 +189,7 @@ class DashboardViewModel : ViewModel() {
     // 4. Estado de Productos
     private suspend fun loadProductStatusData() {
         try {
-            /*
+/*
             // CÓDIGO FIRESTORE (COMENTADO)
             val snapshot = db.collection("products")
                 .whereEqualTo("sellerUid", currentUserId)
@@ -225,7 +218,7 @@ class DashboardViewModel : ViewModel() {
             if (reservedCount > 0) statusList.add("Reservados" to reservedCount)
 
             _productStatusData.postValue(statusList)
-            */
+*/
 
             // DATOS FALSOS
             _productStatusData.postValue(listOf(
@@ -245,8 +238,8 @@ class DashboardViewModel : ViewModel() {
     // 5. Tus Favoritos
     private suspend fun loadFavoritesData() {
         try {
-            /*
-            // CÓDIGO FIRESTORE (COMENTADO)
+
+            // CÓDIGO FIRESTORE - COMPLETAMENTE DINÁMICO
             val snapshot = db.collection("users")
                 .document(currentUserId!!)
                 .collection("favorites")
@@ -266,117 +259,58 @@ class DashboardViewModel : ViewModel() {
                 }
             }
 
-            val predefinedCategories = listOf("Tecnología", "Libros", "Ropa", "Mobiliario", "Deportes", "Otros")
-            val result = predefinedCategories.map { category ->
-                category to categoryCount.getOrDefault(category, 0)
-            }
+            // ORDENAR POR CANTIDAD (más populares primero) y tomar top 6
+            val result = categoryCount.toList()
+                .sortedByDescending { it.second }
+                .take(6) // Mostrar solo las 6 categorías más populares
+
             _favoritesData.postValue(result)
-            */
 
-            // DATOS FALSOS
-            val categories = listOf("Tecnología", "Libros", "Ropa", "Mobiliario", "Deportes", "Otros")
-            val counts = listOf(8, 12, 6, 4, 3, 2)
-            _favoritesData.postValue(categories.zip(counts))
-
-        } catch (e: Exception) {
-            val categories = listOf("Tecnología", "Libros", "Ropa", "Mobiliario", "Deportes", "Otros")
-            val counts = listOf(8, 12, 6, 4, 3, 2)
-            _favoritesData.postValue(categories.zip(counts))
-        }
-    }
-
-    // 6. Actividad de Usuarios (24h)
-    private suspend fun loadUserFlowData() {
-        try {
-            /*
-            // CÓDIGO FIRESTORE (COMENTADO) - Podrías usar Firebase Analytics aquí
-            // Este es un ejemplo de cómo podrías obtener datos de actividad
-            val snapshot = db.collection("user_activity")
-                .whereGreaterThanOrEqualTo("timestamp", getLast24Hours())
-                .get()
-                .await()
-
-            val hourlyActivity = mutableMapOf<String, Float>()
-
-            snapshot.documents.forEach { document ->
-                val timestamp = document.getTimestamp("timestamp")
-                if (timestamp != null) {
-                    val calendar = Calendar.getInstance()
-                    calendar.time = timestamp.toDate()
-                    val hour = calendar.get(Calendar.HOUR_OF_DAY).toString()
-                    hourlyActivity[hour] = hourlyActivity.getOrDefault(hour, 0f) + 1f
-                }
-            }
-
-            val hours = (0..23).map { it.toString() }
-            val result = hours.map { hour ->
-                hour to hourlyActivity.getOrDefault(hour, 0f)
-            }
-            _userFlowData.postValue(result)
-            */
-
-            // DATOS FALSOS - Patrón típico de uso de app
-            val hours = (0..23).map { it.toString() }
-            val activity = listOf(
-                10f, 8f, 5f, 3f, 2f, 4f,        // Madrugada: poca actividad
-                15f, 30f, 45f, 60f, 75f, 80f,   // Mañana: actividad creciente
-                95f, 110f, 105f, 100f, 120f,    // Tarde: pico máximo
-                150f, 140f, 120f, 90f, 60f, 30f // Noche: actividad decreciente
+/*
+            // DATOS FALSOS DINÁMICOS
+            val dynamicData = mapOf(
+                "Tecnología" to 8,
+                "Libros" to 12,
+                "Ropa" to 6,
+                "Mobiliario" to 4,
+                "Deportes" to 3,
+                "Otros" to 2
             )
-            _userFlowData.postValue(hours.zip(activity))
-
+            val result = dynamicData.toList().sortedByDescending { it.second }
+            _favoritesData.postValue(result)
+*/
         } catch (e: Exception) {
-            val hours = (0..23).map { it.toString() }
-            val activity = listOf(10f, 8f, 5f, 3f, 2f, 4f, 15f, 30f, 45f, 60f, 75f, 80f, 95f, 110f, 105f, 100f, 120f, 150f, 140f, 120f, 90f, 60f, 30f, 20f)
-            _userFlowData.postValue(hours.zip(activity))
+            val dynamicData = mapOf(
+                "Tecnología" to 8,
+                "Libros" to 12,
+                "Ropa" to 6,
+                "Mobiliario" to 4,
+                "Deportes" to 3,
+                "Otros" to 2
+            )
+            val result = dynamicData.toList().sortedByDescending { it.second }
+            _favoritesData.postValue(result)
         }
     }
 
-    // 7. Actividad Diaria
-    private suspend fun loadDailyActivityData() {
-        try {
-            /*
-            // CÓDIGO FIRESTORE (COMENTADO)
-            val snapshot = db.collection("user_activity")
-                .whereGreaterThanOrEqualTo("timestamp", getLast7Days())
-                .get()
-                .await()
-
-            val dailyActivity = mutableMapOf<String, Float>()
-            val calendar = Calendar.getInstance()
-
-            snapshot.documents.forEach { document ->
-                val timestamp = document.getTimestamp("timestamp")
-                if (timestamp != null) {
-                    calendar.time = timestamp.toDate()
-                    val day = getDayName(calendar.get(Calendar.DAY_OF_WEEK))
-                    dailyActivity[day] = dailyActivity.getOrDefault(day, 0f) + 1f
-                }
-            }
-
-            val days = listOf("Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom")
-            val result = days.map { day ->
-                day to dailyActivity.getOrDefault(day, 0f)
-            }
-            _dailyActivityData.postValue(result)
-            */
-
-            // DATOS FALSOS - Patrón semanal típico
-            val days = listOf("Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom")
-            val activity = listOf(80f, 95f, 110f, 105f, 140f, 160f, 120f) // Fin de semana más actividad
-            _dailyActivityData.postValue(days.zip(activity))
-
-        } catch (e: Exception) {
-            val days = listOf("Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom")
-            val activity = listOf(80f, 95f, 110f, 105f, 140f, 160f, 120f)
-            _dailyActivityData.postValue(days.zip(activity))
-        }
-    }
-
+    // FUNCIONES AUXILIARES PARA FIRESTORE
     private fun getMonthName(month: Int): String {
         return when (month) {
             0 -> "Ene"; 1 -> "Feb"; 2 -> "Mar"; 3 -> "Abr"; 4 -> "May"; 5 -> "Jun"
             6 -> "Jul"; 7 -> "Ago"; 8 -> "Sep"; 9 -> "Oct"; 10 -> "Nov"; 11 -> "Dic"
+            else -> ""
+        }
+    }
+
+    private fun getDayOfWeekName(dayOfWeek: Int): String {
+        return when (dayOfWeek) {
+            Calendar.MONDAY -> "Lun"
+            Calendar.TUESDAY -> "Mar"
+            Calendar.WEDNESDAY -> "Mié"
+            Calendar.THURSDAY -> "Jue"
+            Calendar.FRIDAY -> "Vie"
+            Calendar.SATURDAY -> "Sáb"
+            Calendar.SUNDAY -> "Dom"
             else -> ""
         }
     }
@@ -393,11 +327,6 @@ class DashboardViewModel : ViewModel() {
         _productStatusData.postValue(listOf("Activos" to 8f, "Vendidos" to 12f, "En Negociación" to 3f, "Reservados" to 2f))
         _favoritesData.postValue(categories.zip(listOf(8, 12, 6, 4, 3, 2)))
 
-        val hours = (0..23).map { it.toString() }
-        _userFlowData.postValue(hours.zip(listOf(10f, 8f, 5f, 3f, 2f, 4f, 15f, 30f, 45f, 60f, 75f, 80f, 95f, 110f, 105f, 100f, 120f, 150f, 140f, 120f, 90f, 60f, 30f, 20f)))
-
-        val days = listOf("Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom")
-        _dailyActivityData.postValue(days.zip(listOf(80f, 95f, 110f, 105f, 140f, 160f, 120f)))
     }
 
     fun refreshData() {

@@ -42,12 +42,14 @@ fun ConversationsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Mis Conversaciones") },
+                title = { Text(" Mis Conversaciones") },
+                /*
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver")
                     }
                 }
+                */
             )
         }
     ) { paddingValues ->
