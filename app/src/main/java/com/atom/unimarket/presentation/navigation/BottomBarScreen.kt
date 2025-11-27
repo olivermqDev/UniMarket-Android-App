@@ -1,39 +1,34 @@
 // app/src/main/java/com/atom/unimarket/presentation/navigation/BottomBarScreen.kt
 package com.atom.unimarket.presentation.navigation
+import com.atom.unimarket.R
 
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Chat
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.PieChart
-import androidx.compose.ui.graphics.vector.ImageVector
-
+// Cambiamos ImageVector por Int (ID de drawable)
 sealed class BottomBarScreen(
     val route: String,
     val title: String,
-    val icon: ImageVector
+    val iconResId: Int // Aquí guardamos el drawable
 ) {
     object Home : BottomBarScreen(
         route = "PRODUCTS_GRAPH",
         title = "Inicio",
-        icon = Icons.Default.Home
+        iconResId = R.drawable.home // drawable
     )
 
     object Conversations : BottomBarScreen(
         route = AppScreen.Conversations.route,
         title = "Chats",
-        icon = Icons.Default.Chat
+        iconResId = R.drawable.chat // reemplaza con tu drawable
     )
 
     object Profile : BottomBarScreen(
         route = AppScreen.Profile.route,
         title = "Perfil",
-        icon = Icons.Default.Person
+        iconResId = R.drawable.perfil // reemplaza con tu drawable
     )
 
     object Dashboard : BottomBarScreen(
         route = "DASHBOARD_SCREEN",
         title = "Dashboard",
-        icon = Icons.Default.PieChart
+        iconResId = R.drawable.dashboard // reemplaza con tu drawable
     )
 }
