@@ -36,18 +36,25 @@ fun ProductDetailScreen(
 ) {
     val state by productViewModel.productState.collectAsState()
 
-    // --- ELIMINADO: Ya no necesitamos un estado local para el favorito ---
-    // var isFavorite by remember { mutableStateOf(false) }
-
     LaunchedEffect(key1 = productId) {
         if (productId != null) {
             productViewModel.getProductById(productId)
-            // Ya no es necesario llamar a una función checkIfFavorite,
-            // porque el listener del ViewModel se encarga de todo.
         }
     }
 
-    val product = state.products.firstOrNull()
+    // --- NUEVO: Limpiador de estado ---
+    // Cuando esta pantalla se va (onDispose),
+    // le decimos al ViewModel que limpie el producto seleccionado.
+    DisposableEffect(Unit) {
+        onDispose {
+            productViewModel.clearSelectedProduct()
+        }
+    }
+    // --- FIN DE CAMBIO ---
+
+
+    // --- CAMBIO: Leemos 'selectedProduct', no 'products.firstOrNull()' ---
+    val product = state.selectedProduct
 
     Scaffold(
         topBar = {
@@ -58,19 +65,15 @@ fun ProductDetailScreen(
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver atrás")
                     }
                 },
-                // --- INICIO DE CAMBIOS ---
                 actions = {
-                    if (product != null) { // Solo muestra el botón si el producto ha cargado
+                    if (product != null) {
                         IconToggleButton(
-                            // 1. Leemos el estado directamente del ViewModel
                             checked = state.favoriteProductIds.contains(product.id),
-                            // 2. Llamamos a la función del ViewModel al cambiar
                             onCheckedChange = {
                                 productViewModel.toggleFavorite(product.id)
                             }
                         ) {
                             Icon(
-                                // 3. La lógica de qué ícono mostrar es la misma
                                 imageVector = if (state.favoriteProductIds.contains(product.id)) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
                                 contentDescription = "Marcar como favorito",
                                 tint = if (state.favoriteProductIds.contains(product.id)) Color.Red else MaterialTheme.colorScheme.onSurface
@@ -78,7 +81,6 @@ fun ProductDetailScreen(
                         }
                     }
                 }
-                // --- FIN DE CAMBIOS ---
             )
         }
     ) { paddingValues ->
@@ -92,20 +94,17 @@ fun ProductDetailScreen(
                 CircularProgressIndicator()
             } else if (state.error != null) {
                 Text(text = "Error: ${state.error}")
-            } else if (product != null) {
-                // ... (El resto del código del Body y los botones inferiores no cambia)
+            } else if (product != null) { // <-- La UI ahora depende de 'product'
                 Box(modifier = Modifier.fillMaxSize()) {
-                    // Contenido que se puede scrollear
                     Column(
                         modifier = Modifier
                             .fillMaxSize()
                             .verticalScroll(rememberScrollState())
-                            // Dejamos espacio abajo para los botones
                             .padding(bottom = 80.dp)
                     ) {
                         SubcomposeAsyncImage(
                             model = product.imageUrls.firstOrNull(),
-                            loading = { /* ... */ },
+                            loading = { CircularProgressIndicator() }, // Simple loader
                             contentDescription = product.name,
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -126,7 +125,7 @@ fun ProductDetailScreen(
                         }
                     }
 
-                    // Fila de botones de acción fijos en la parte inferior
+                    // Fila de botones de acción
                     Row(
                         modifier = Modifier
                             .align(Alignment.BottomCenter)
@@ -150,11 +149,8 @@ fun ProductDetailScreen(
                         // Botón de Añadir al Carrito
                         Button(
                             onClick = {
-                                // --- CAMBIO: Llamamos a la nueva función del ViewModel ---
-                                if (product != null) {
-                                    productViewModel.addToCart(product.id)
-                                    // Opcional: Mostrar un Toast o Snackbar de confirmación
-                                }
+                                productViewModel.addToCart(product.id)
+                                // Opcional: Mostrar un Toast o Snackbar
                             },
                             modifier = Modifier
                                 .weight(2f)
@@ -167,6 +163,7 @@ fun ProductDetailScreen(
                     }
                 }
             } else {
+                // Esto se muestra si selectedProduct es nulo (después de isLoading)
                 Text(text = "Producto no disponible.")
             }
         }

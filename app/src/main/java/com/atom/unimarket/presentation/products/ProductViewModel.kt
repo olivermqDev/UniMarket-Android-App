@@ -5,7 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.atom.unimarket.presentation.data.Product
 import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.firestore.FieldValue // --- NUEVO ---
+import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.firestore.Query
@@ -16,31 +16,35 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import java.util.UUID
+import org.koin.core.component.KoinComponent
 
-// --- NUEVO: Añadimos la lista de favoritos al estado ---
+// --- INICIO DE CAMBIOS (ProductState) ---
 data class ProductState(
-    val products: List<Product> = emptyList(),
+    val products: List<Product> = emptyList(), // Esta es la lista del CATÁLOGO
+    val selectedProduct: Product? = null, // <-- 1. CAMPO NUEVO para la pantalla de detalle
     val isLoading: Boolean = false,
     val error: String? = null,
     val uploadSuccess: Boolean = false,
     val currentSortOption: SortOption = SortOption.NEWEST_FIRST,
     val searchQuery: String = "",
     val selectedCategory: String? = null,
-    val favoriteProductIds: Set<String> = emptySet() // Contendrá los IDs de productos favoritos
+    val favoriteProductIds: Set<String> = emptySet()
 )
+// --- FIN DE CAMBIOS (ProductState) ---
 
 data class CartState(
-    val cartItems: Map<String, Int> = emptyMap(), // Map de <ProductID, Cantidad>
+    val cartItems: Map<String, Int> = emptyMap(),
     val cartProducts: List<Product> = emptyList(),
     val totalPrice: Double = 0.0,
     val isLoading: Boolean = false,
     val error: String? = null
 )
-class ProductViewModel : ViewModel() {
 
-    private val firestore = FirebaseFirestore.getInstance()
-    private val auth = FirebaseAuth.getInstance()
-    private val storage = FirebaseStorage.getInstance()
+class ProductViewModel(
+    private val firestore: FirebaseFirestore,
+    private val auth: FirebaseAuth,
+    private val storage: FirebaseStorage
+) : ViewModel(), KoinComponent {
 
     private val _productState = MutableStateFlow(ProductState())
     val productState = _productState.asStateFlow()
@@ -48,23 +52,19 @@ class ProductViewModel : ViewModel() {
     private var productListener: ListenerRegistration? = null
     private var allProducts: List<Product> = emptyList()
 
-    // --- NUEVO: Listener para la lista de favoritos ---
     private var favoritesListener: ListenerRegistration? = null
 
-    // Dentro de ProductViewModel, debajo de la declaración de _productState
     private val _cartState = MutableStateFlow(CartState())
     val cartState = _cartState.asStateFlow()
 
     init {
         listenForProductUpdates()
-        // --- NUEVO: Escuchar los favoritos del usuario cuando el ViewModel se inicia ---
         listenForFavoriteChanges()
     }
 
-    // --- NUEVO: Función para escuchar los cambios en la subcolección 'favorites' ---
     private fun listenForFavoriteChanges() {
-        val userId = getCurrentUserId() ?: return // Si no hay usuario, no hacemos nada
-        favoritesListener?.remove() // Removemos el listener anterior si existe
+        val userId = getCurrentUserId() ?: return
+        favoritesListener?.remove()
 
         favoritesListener = firestore.collection("users").document(userId)
             .collection("favorites")
@@ -74,27 +74,22 @@ class ProductViewModel : ViewModel() {
                     return@addSnapshotListener
                 }
                 if (snapshot != null) {
-                    // Obtenemos los IDs de todos los documentos en la subcolección
                     val favoriteIds = snapshot.documents.map { it.id }.toSet()
                     _productState.update { it.copy(favoriteProductIds = favoriteIds) }
                 }
             }
     }
 
-    // --- NUEVO: Función para añadir o quitar un producto de favoritos ---
     fun toggleFavorite(productId: String) {
-        val userId = getCurrentUserId() ?: return // Acción protegida, necesita un usuario logueado
+        val userId = getCurrentUserId() ?: return
         viewModelScope.launch {
             try {
                 val favoritesRef = firestore.collection("users").document(userId)
                     .collection("favorites").document(productId)
 
-                // Comprobamos si el producto ya está en favoritos usando el estado local
                 if (productState.value.favoriteProductIds.contains(productId)) {
-                    // Si está, lo eliminamos
                     favoritesRef.delete().await()
                 } else {
-                    // Si no está, lo añadimos. Podemos guardar datos adicionales como la fecha.
                     favoritesRef.set(mapOf("addedAt" to FieldValue.serverTimestamp())).await()
                 }
             } catch (e: Exception) {
@@ -126,7 +121,6 @@ class ProductViewModel : ViewModel() {
     private fun filterProducts() {
         val query = _productState.value.searchQuery
         val category = _productState.value.selectedCategory
-        val currentUserId = getCurrentUserId()
 
         val filteredList = allProducts.filter { product ->
             val matchesSearch = if (query.isBlank()) {
@@ -139,10 +133,7 @@ class ProductViewModel : ViewModel() {
             } else {
                 product.category.equals(category, ignoreCase = true)
             }
-            // --- NUEVO: Excluir productos del usuario actual
-            val isNotOwnProduct = product.sellerUid != currentUserId
-
-            matchesSearch && matchesCategory && isNotOwnProduct
+            matchesSearch && matchesCategory
         }
 
         _productState.update { it.copy(isLoading = false, products = filteredList) }
@@ -178,7 +169,7 @@ class ProductViewModel : ViewModel() {
                 val productId = firestore.collection("products").document().id
                 val newProduct = Product(
                     id = productId, name = name, description = description, price = price, category = category,
-                    imageUrls = listOf(imageUrl), sellerUid = user.uid, sellerName = user.displayName ?: "Vendedor anónimo", createdAt = null // O FieldValue.serverTimestamp() si el campo es Timestamp
+                    imageUrls = listOf(imageUrl), sellerUid = user.uid, sellerName = user.displayName ?: "Vendedor anónimo", createdAt = null
                 )
                 firestore.collection("products").document(productId).set(newProduct).await()
 
@@ -195,56 +186,63 @@ class ProductViewModel : ViewModel() {
         _productState.update { it.copy(error = null, uploadSuccess = false) }
     }
 
+    // --- INICIO DE CAMBIOS (getProductById) ---
     fun getProductById(productId: String) {
-        _productState.update { it.copy(isLoading = true) }
+        // 2. Limpiamos el producto anterior y ponemos isLoading
+        _productState.update { it.copy(isLoading = true, selectedProduct = null) }
+
         firestore.collection("products").document(productId).get()
             .addOnSuccessListener { document ->
                 val product = document.toObject(Product::class.java)
-                if (product != null) {
-                    _productState.update { it.copy(isLoading = false, products = listOf(product)) }
-                } else {
-                    _productState.update { it.copy(isLoading = false, error = "Producto no encontrado") }
+                // 3. Ahora actualizamos el campo 'selectedProduct',
+                // ¡NO la lista 'products'!
+                _productState.update {
+                    it.copy(isLoading = false, selectedProduct = product)
                 }
             }
             .addOnFailureListener { exception ->
                 _productState.update { it.copy(isLoading = false, error = "Error al cargar: ${exception.message}") }
             }
     }
+    // --- FIN DE CAMBIOS (getProductById) ---
+
+    // --- 4. NUEVA FUNCIÓN DE LIMPIEZA ---
+    // La llamaremos al salir de la pantalla de detalle
+    fun clearSelectedProduct() {
+        _productState.update { it.copy(selectedProduct = null) }
+    }
+    // --- FIN DE NUEVA FUNCIÓN ---
 
     fun getCurrentUserId(): String? {
         return auth.currentUser?.uid
     }
 
-    // --- NUEVO: Limpiar los listeners cuando el ViewModel se destruye ---
     override fun onCleared() {
         super.onCleared()
         productListener?.remove()
         favoritesListener?.remove()
     }
-    // --- NUEVO: Función para obtener los detalles de los productos favoritos ---
+
     fun getFavoriteProducts() {
         val userId = getCurrentUserId() ?: return
-        _productState.update { it.copy(isLoading = true, products = emptyList()) } // Limpiamos la lista anterior
+        // ¡Esta función SÍ debe modificar la lista 'products'!
+        // Porque la usa FavoritesScreen, que no muestra el catálogo.
+        _productState.update { it.copy(isLoading = true, products = emptyList()) }
 
         viewModelScope.launch {
             try {
-                // 1. Obtenemos los IDs de los favoritos desde el estado actual
                 val favoriteIds = _productState.value.favoriteProductIds
                 if (favoriteIds.isEmpty()) {
-                    // Si no hay favoritos, no hay nada que buscar
                     _productState.update { it.copy(isLoading = false) }
                     return@launch
                 }
 
-                // 2. Hacemos una consulta a Firestore para obtener los productos cuyos IDs están en nuestra lista
-                // Firestore permite hasta 30 IDs en una consulta "in"
                 val favoriteProducts = firestore.collection("products")
                     .whereIn("id", favoriteIds.toList())
                     .get()
                     .await()
                     .toObjects(Product::class.java)
 
-                // 3. Actualizamos el estado con los productos encontrados
                 _productState.update { it.copy(isLoading = false, products = favoriteProducts) }
 
             } catch (e: Exception) {
@@ -252,44 +250,14 @@ class ProductViewModel : ViewModel() {
             }
         }
     }
-    // ---NUEVO: Funcion para que el usuario vea los productos que tiene en venta
-    fun loadUserProducts() {
-        val userId = getCurrentUserId() ?: return
 
-        _productState.update { it.copy(isLoading = true) }
-
-        // Escuchar solo los productos del usuario actual
-        productListener?.remove()
-        productListener = firestore.collection("products")
-            .whereEqualTo("sellerUid", userId)
-            .addSnapshotListener { snapshot, error ->
-                if (error != null) {
-                    _productState.update {
-                        it.copy(isLoading = false, error = "Error: ${error.message}")
-                    }
-                    return@addSnapshotListener
-                }
-
-                if (snapshot != null) {
-                    val userProducts = snapshot.toObjects(Product::class.java)
-                    _productState.update {
-                        it.copy(
-                            isLoading = false,
-                            products = userProducts,
-                            error = null
-                        )
-                    }
-                }
-            }
-    }
-    // --- INICIO: LÓGICA DEL CARRITO DE COMPRAS ---
+    // --- LÓGICA DEL CARRITO DE COMPRAS (Sin cambios) ---
 
     fun addToCart(productId: String) {
         val userId = getCurrentUserId() ?: return
         viewModelScope.launch {
             try {
                 val cartRef = firestore.collection("users").document(userId).collection("cart").document(productId)
-                // Usamos FieldValue.increment para añadir 1 a la cantidad de forma atómica
                 cartRef.set(mapOf("quantity" to FieldValue.increment(1)), com.google.firebase.firestore.SetOptions.merge()).await()
             } catch (e: Exception) {
                 _cartState.update { it.copy(error = "Error al añadir al carrito: ${e.message}") }
@@ -303,7 +271,6 @@ class ProductViewModel : ViewModel() {
 
         viewModelScope.launch {
             try {
-                // 1. Obtenemos los IDs y cantidades del carrito del usuario
                 val cartSnapshot = firestore.collection("users").document(userId).collection("cart").get().await()
                 val cartItemsMap = cartSnapshot.documents.associate { it.id to (it.getLong("quantity")?.toInt() ?: 0) }
                 val productIds = cartItemsMap.keys.toList()
@@ -313,20 +280,17 @@ class ProductViewModel : ViewModel() {
                     return@launch
                 }
 
-                // 2. Obtenemos los detalles de esos productos
                 val productsList = firestore.collection("products")
                     .whereIn("id", productIds)
                     .get()
                     .await()
                     .toObjects(Product::class.java)
 
-                // 3. Calculamos el precio total
                 var total = 0.0
                 for (product in productsList) {
                     total += product.price * (cartItemsMap[product.id] ?: 0)
                 }
 
-                // 4. Actualizamos el estado
                 _cartState.update {
                     it.copy(
                         isLoading = false,
@@ -340,9 +304,6 @@ class ProductViewModel : ViewModel() {
             }
         }
     }
-
-// --- FIN: LÓGICA DEL CARRITO DE COMPRAS ---
-
 }
 
 enum class SortOption(val field: String, val direction: Query.Direction) {

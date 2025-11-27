@@ -24,7 +24,10 @@ import com.atom.unimarket.presentation.navigation.BottomBarScreen
 import com.atom.unimarket.presentation.products.ProductViewModel
 import androidx.compose.material.icons.filled.Chat
 import androidx.compose.material.icons.filled.SmartToy
-import androidx.lifecycle.viewmodel.compose.viewModel
+// --- INICIO DE CAMBIOS ---
+// import androidx.lifecycle.viewmodel.compose.viewModel // <-- 1. ESTE SE VA
+import org.koin.androidx.compose.koinViewModel // <-- 2. AÑADIMOS ESTE
+// --- FIN DE CAMBIOS ---
 import com.atom.unimarket.presentation.dashboard.DashboardViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -33,15 +36,16 @@ fun MainScreen(
     mainNavController: NavHostController,
     productViewModel: ProductViewModel,
     chatViewModel: ChatViewModel
-
-
 ) {
     val bottomBarNavController = rememberNavController()
 
     val navBackStackEntry by bottomBarNavController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
 
-    val dashboardViewModel: DashboardViewModel = viewModel()
+    // --- INICIO DE CAMBIOS ---
+    val dashboardViewModel: DashboardViewModel = koinViewModel() // <-- 3. CAMBIADO
+    // --- FIN DE CAMBIOS ---
+
     Scaffold(
         bottomBar = { BottomBar(navController = bottomBarNavController) },
 

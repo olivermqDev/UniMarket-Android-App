@@ -17,6 +17,7 @@ import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import java.util.UUID
+import org.koin.core.component.KoinComponent
 
 // Estado que la UI observará
 data class AuthState(
@@ -34,11 +35,18 @@ fun FirebaseAuth.getAuthState(): Flow<FirebaseAuth> = callbackFlow {
     awaitClose { removeAuthStateListener(listener) }
 }
 
-class AuthViewModel : ViewModel() {
+// --- INICIO DE CAMBIOS ---
+class AuthViewModel(
+    private val auth: FirebaseAuth,
+    private val firestore: FirebaseFirestore,
+    private val storage: FirebaseStorage
+) : ViewModel(), KoinComponent {
+// --- FIN DE CAMBIOS ---
 
-    private val auth: FirebaseAuth = FirebaseAuth.getInstance()
-    private val firestore: FirebaseFirestore = FirebaseFirestore.getInstance()
-    private val storage: FirebaseStorage = FirebaseStorage.getInstance()
+    // --- ESTAS LÍNEAS SE ELIMINAN ---
+    // private val auth: FirebaseAuth = FirebaseAuth.getInstance()
+    // private val firestore: FirebaseFirestore = FirebaseFirestore.getInstance()
+    // private val storage: FirebaseStorage = FirebaseStorage.getInstance()
 
     private val _authState = MutableStateFlow(AuthState())
     val authState = _authState.asStateFlow()
@@ -140,7 +148,7 @@ class AuthViewModel : ViewModel() {
                 // Indicador de carga (opcional pero bueno para la UX)
                 _authState.value = _authState.value.copy(isLoading = true)
 
-                val imageRef = storage.reference.child("profile_images/${UUID.randomUUID()}.jpg")
+                val imageRef = storage.reference.child("profile_images/${userId}/${UUID.randomUUID()}.jpg")
                 val uploadTask = imageRef.putFile(imageUri).await()
                 val downloadUrl = uploadTask.storage.downloadUrl.await().toString()
 

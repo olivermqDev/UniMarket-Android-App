@@ -12,7 +12,10 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.error
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
+// --- INICIO DE CAMBIOS ---
+// import androidx.lifecycle.viewmodel.compose.viewModel // <-- 1. ESTE SE VA
+import org.koin.androidx.compose.koinViewModel // <-- 2. AÑADIMOS ESTE
+// --- FIN DE CAMBIOS ---
 import androidx.navigation.NavController
 import com.atom.unimarket.presentation.auth.AuthViewModel
 import com.atom.unimarket.presentation.navigation.AppScreen
@@ -20,7 +23,9 @@ import com.atom.unimarket.presentation.navigation.AppScreen
 @Composable
 fun SignUpScreen(
     navController: NavController,
-    authViewModel: AuthViewModel = viewModel()
+    // --- INICIO DE CAMBIOS ---
+    authViewModel: AuthViewModel = koinViewModel() // <-- 3. CAMBIADO
+    // --- FIN DE CAMBIOS ---
 ) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
@@ -113,7 +118,9 @@ fun SignUpScreen(
     LaunchedEffect(authState) {
         if (authState.user != null) {
             Toast.makeText(context, "Registro exitoso. ¡Bienvenido, ${authState.user?.displayName ?: ""}!", Toast.LENGTH_SHORT).show()
-            navController.navigate(AppScreen.Products.route) {
+            // Aquí hay un pequeño error en tu código original, debería navegar a "main_screen"
+            // Lo cambiaré para que sea coherente con tu LoginScreen
+            navController.navigate("main_screen") {
                 popUpTo(AppScreen.Login.route) { inclusive = true }
             }
         }

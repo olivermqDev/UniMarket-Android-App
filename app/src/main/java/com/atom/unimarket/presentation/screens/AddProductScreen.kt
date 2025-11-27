@@ -1,5 +1,7 @@
 package com.atom.unimarket.presentation.screens
 
+import android.Manifest
+import android.content.Context // <-- El import que añadimos
 import android.net.Uri
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -26,9 +28,22 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.core.content.FileProvider
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.atom.unimarket.presentation.products.ProductViewModel
+import java.io.File
+import java.util.*
+
+// --- NUEVA FUNCIÓN HELPER ---
+fun Context.createImageUri(): Uri {
+    val file = File(this.cacheDir, "temp_image_${Date().time}.jpg")
+    return FileProvider.getUriForFile(
+        this,
+        "${this.packageName}.provider",
+        file
+    )
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -41,20 +56,74 @@ fun AddProductScreen(
     var price by remember { mutableStateOf("") }
     var imageUri by remember { mutableStateOf<Uri?>(null) }
 
-    // 1. ESTADO PARA EL MENÚ DE CATEGORÍAS
+    var showImageDialog by remember { mutableStateOf(false) }
+    var tempCameraUri by remember { mutableStateOf<Uri?>(null) }
+
+    val context = LocalContext.current
+
     val categories = listOf("Tecnología", "Libros", "Ropa", "Mobiliario", "Deportes", "Otros")
     var expandedCategoryMenu by remember { mutableStateOf(false) }
-    var selectedCategory by remember { mutableStateOf(categories.last()) } // 'Otros' por defecto
+    var selectedCategory by remember { mutableStateOf(categories.last()) }
 
     val productState by productViewModel.productState.collectAsState()
-    val context = LocalContext.current
 
     val imagePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent(),
-        onResult = { uri: Uri? -> imageUri = uri }
+        onResult = { uri: Uri? ->
+            imageUri = uri
+        }
     )
 
-    // LaunchedEffect no necesita cambios, tu implementación es correcta.
+    val cameraLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.TakePicture(),
+        onResult = { success: Boolean ->
+            if (success) {
+                imageUri = tempCameraUri
+            }
+        }
+    )
+
+    val cameraPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission(),
+        onResult = { isGranted: Boolean ->
+            if (isGranted) {
+                val newUri = context.createImageUri()
+                tempCameraUri = newUri
+                cameraLauncher.launch(newUri)
+            } else {
+                Toast.makeText(context, "Se necesita permiso de cámara", Toast.LENGTH_SHORT).show()
+            }
+        }
+    )
+
+    if (showImageDialog) {
+        AlertDialog(
+            onDismissRequest = { showImageDialog = false },
+            title = { Text("Añadir imagen") },
+            text = { Text("Elige una opción para subir tu foto") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showImageDialog = false
+                        cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+                    }
+                ) {
+                    Text("Tomar Foto")
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        showImageDialog = false
+                        imagePickerLauncher.launch("image/*")
+                    }
+                ) {
+                    Text("Desde Galería")
+                }
+            }
+        )
+    }
+
     LaunchedEffect(productState) {
         if (productState.uploadSuccess) {
             Toast.makeText(context, "Producto publicado con éxito", Toast.LENGTH_SHORT).show()
@@ -88,13 +157,12 @@ fun AddProductScreen(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Box(
-                // ... (El Box de la imagen no necesita cambios)
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(200.dp)
                     .clip(RoundedCornerShape(12.dp))
                     .background(MaterialTheme.colorScheme.surfaceVariant)
-                    .clickable { imagePickerLauncher.launch("image/*") },
+                    .clickable { showImageDialog = true },
                 contentAlignment = Alignment.Center
             ) {
                 if (imageUri != null) {
@@ -107,12 +175,11 @@ fun AddProductScreen(
                     }
                 }
             }
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(16.dp)) // <-- Esta era la línea 190, ahora corregida
 
             OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("Nombre del Producto") }, modifier = Modifier.fillMaxWidth(), singleLine = true, enabled = !productState.isLoading)
             Spacer(modifier = Modifier.height(16.dp))
 
-            // --- 2. MENÚ DESPLEGABLE PARA CATEGORÍAS ---
             ExposedDropdownMenuBox(
                 expanded = expandedCategoryMenu,
                 onExpandedChange = { expandedCategoryMenu = !expandedCategoryMenu }
@@ -120,7 +187,7 @@ fun AddProductScreen(
                 OutlinedTextField(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .menuAnchor(), // Importante para anclar el menú
+                        .menuAnchor(),
                     readOnly = true,
                     value = selectedCategory,
                     onValueChange = {},
@@ -156,13 +223,12 @@ fun AddProductScreen(
                     if (name.isBlank() || description.isBlank() || priceDouble == null || priceDouble <= 0 || imageUri == null) {
                         Toast.makeText(context, "Por favor, completa todos los campos y añade una imagen.", Toast.LENGTH_SHORT).show()
                     } else {
-                        // --- 3. LLAMADA CORREGIDA A addProduct ---
                         productViewModel.addProduct(
                             name = name,
                             description = description,
                             price = priceDouble,
-                            category = selectedCategory, // Pasamos la categoría seleccionada
-                            imageUri = imageUri // Pasamos el Uri de la imagen
+                            category = selectedCategory,
+                            imageUri = imageUri
                         ) { success, error ->
                             if (!success) {
                                 println("Fallo al iniciar la subida: $error")

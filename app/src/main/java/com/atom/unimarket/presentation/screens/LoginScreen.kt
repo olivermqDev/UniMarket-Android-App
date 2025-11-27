@@ -11,7 +11,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
+// --- INICIO DE CAMBIOS ---
+// import androidx.lifecycle.viewmodel.compose.viewModel // <-- 1. ESTE SE VA
+import org.koin.androidx.compose.koinViewModel // <-- 2. AÑADIMOS ESTE
+// --- FIN DE CAMBIOS ---
 import androidx.navigation.NavController
 import com.atom.unimarket.presentation.auth.AuthViewModel
 import com.atom.unimarket.presentation.navigation.AppScreen
@@ -19,7 +22,9 @@ import com.atom.unimarket.presentation.navigation.AppScreen
 @Composable
 fun LoginScreen(
     navController: NavController,
-    authViewModel: AuthViewModel = viewModel()
+    // --- INICIO DE CAMBIOS ---
+    authViewModel: AuthViewModel = koinViewModel() // <-- 3. CAMBIADO
+    // --- FIN DE CAMBIOS ---
 ) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }

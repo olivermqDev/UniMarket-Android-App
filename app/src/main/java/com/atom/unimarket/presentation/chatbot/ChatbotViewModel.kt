@@ -2,84 +2,69 @@ package com.atom.unimarket.presentation.chatbot
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.atom.unimarket.presentation.data.repository.ChatbotRepository
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import java.util.Date
 
-// Define quién envía el mensaje: el usuario o el bot
-enum class MessageAuthor {
-    USER, BOT
-}
-
-// Representa un único mensaje en la conversación del chatbot
-data class ChatbotMessage(
+data class BotMessage(
     val text: String,
-    val author: MessageAuthor,
-    val timestamp: Date = Date()
-)
-
-// Estado de la UI para la pantalla del chatbot
-data class ChatbotUiState(
-    val messages: List<ChatbotMessage> = emptyList(),
-    val isLoading: Boolean = false,
-    val error: String? = null
+    val isUser: Boolean,
+    val timestamp: Long = System.currentTimeMillis()
 )
 
 class ChatbotViewModel : ViewModel() {
+    private val chatbotRepository = ChatbotRepository()
 
-    private val _uiState = MutableStateFlow(ChatbotUiState())
-    val uiState = _uiState.asStateFlow()
-
-    init {
-        // Mensaje de bienvenida inicial del bot
-        _uiState.update {
-            it.copy(
-                messages = listOf(
-                    ChatbotMessage(
-                        text = "¡Hola! Soy tu asistente de compras UniMarket. ¿En qué puedo ayudarte hoy? Puedes preguntarme sobre productos, precios o disponibilidad.",
-                        author = MessageAuthor.BOT
-                    )
-                )
+    private val _messages = MutableStateFlow<List<BotMessage>>(
+        listOf(
+            BotMessage(
+                text = "¡Hola! Soy el asistente virtual de UniMarket. ¿En qué puedo ayudarte hoy?",
+                isUser = false
             )
-        }
-    }
+        )
+    )
+    val messages: StateFlow<List<BotMessage>> = _messages.asStateFlow()
 
-    // Función que se llamará cuando el usuario envíe un mensaje
-    fun sendMessageToBot(userInput: String) {
-        if (userInput.isBlank()) return
+    private val _isLoading = MutableStateFlow(false)
+    val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
-        // 1. Añade inmediatamente el mensaje del usuario a la lista para que se muestre en la UI
-        val userMessage = ChatbotMessage(text = userInput, author = MessageAuthor.USER)
-        _uiState.update {
-            it.copy(
-                messages = it.messages + userMessage,
-                isLoading = true // Muestra un indicador de que el bot está "pensando"
-            )
-        }
+    fun sendMessage(message: String) {
+        if (message.isBlank()) return
 
-        // 2. Simula una llamada a la API y una respuesta del bot (AQUÍ IRÁ LA LÓGICA DE LA IA)
         viewModelScope.launch {
-            // ----- INICIO DEL SIMULADOR DE IA -----
-            // Esto lo reemplazaremos con la llamada real a la API de Gemini
-            kotlinx.coroutines.delay(2000) // Simula el tiempo de respuesta de la red
-            val botResponseText = "He recibido tu mensaje: \"$userInput\". Estoy procesando tu consulta..."
-            // ----- FIN DEL SIMULADOR DE IA -----
+            // Agregar mensaje del usuario
+            _messages.value = _messages.value + BotMessage(text = message, isUser = true)
 
-            val botMessage = ChatbotMessage(text = botResponseText, author = MessageAuthor.BOT)
+            // Mostrar indicador de carga
+            _isLoading.value = true
 
-            // 3. Añade la respuesta del bot a la lista y oculta el indicador de carga
-            _uiState.update {
-                it.copy(
-                    messages = it.messages + botMessage,
-                    isLoading = false
-                )
-            }
+            // Obtener respuesta del chatbot
+            chatbotRepository.getChatbotResponse(message)
+                .onSuccess { response ->
+                    _messages.value = _messages.value + BotMessage(
+                        text = response,
+                        isUser = false
+                    )
+                }
+                .onFailure { exception ->
+                    _messages.value = _messages.value + BotMessage(
+                        text = "Lo siento, ocurrió un error: ${exception.message}",
+                        isUser = false
+                    )
+                }
+
+            _isLoading.value = false
         }
     }
 
-    fun clearError() {
-        _uiState.update { it.copy(error = null) }
+    fun clearChat() {
+        _messages.value = listOf(
+            BotMessage(
+                text = "¡Hola! Soy el asistente virtual de UniMarket. ¿En qué puedo ayudarte hoy?",
+                isUser = false
+            )
+        )
     }
 }
