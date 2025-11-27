@@ -75,8 +75,8 @@ fun ProductsScreen(
         )
         LazyRow(
             modifier = Modifier.fillMaxWidth(),
-            contentPadding = PaddingValues(horizontal = 16.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+            contentPadding = PaddingValues(start = 16.dp, bottom = 16.dp),
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             items(categories) { category ->
                 val isSelected = (productState.selectedCategory ?: "Todas") == category
@@ -107,8 +107,8 @@ fun ProductsScreen(
 
         Box(
             modifier = Modifier
-                .fillMaxSize()
-                .padding(top = 8.dp),
+                .fillMaxSize(),
+             //   .padding(top = 8.dp),
             contentAlignment = Alignment.Center
         ) {
             if (productState.isLoading && productState.products.isEmpty()) {

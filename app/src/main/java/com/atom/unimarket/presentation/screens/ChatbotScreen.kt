@@ -19,12 +19,14 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.atom.unimarket.presentation.chatbot.ChatbotViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import com.atom.unimarket.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -87,32 +89,17 @@ fun ChatbotScreen(
                         contentAlignment = Alignment.Center
                     ) {
                         Box(
-                            modifier = Modifier
-                                .size(44.dp)
-                                .clip(CircleShape)
-                                .background(
-                                    brush = Brush.verticalGradient(
-                                        colors = listOf(gradientStart, gradientEnd)
-                                    )
-                                ),
+                            modifier = Modifier,
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
-                                Icons.Default.SmartToy,
+                                painter = painterResource(R.drawable.chat_bot),
                                 contentDescription = "Bot",
-                                tint = Color.White,
-                                modifier = Modifier.size(22.dp)
+                                tint = Color.Unspecified, // mantiene colores
+                                modifier = Modifier.size(55.dp)
                             )
                         }
 
-                        // Indicador de en línea
-                        Box(
-                            modifier = Modifier
-                                .size(10.dp)
-                                .clip(CircleShape)
-                                .background(onlineGreen)
-                                .align(Alignment.BottomEnd)
-                        )
                     }
 
                     Spacer(modifier = Modifier.width(12.dp))
@@ -124,12 +111,25 @@ fun ChatbotScreen(
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.primary
                         )
-                        Text(
-                            "En línea • Responde al instante",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = onlineGreen,
-                            fontWeight = FontWeight.Medium
-                        )
+                        // Indicador de en línea
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically, // centra verticalmente
+                            horizontalArrangement = Arrangement.spacedBy(4.dp) // opcional: espacio entre box y texto
+                        ) {
+                            // Indicador de en línea
+                            Box(
+                                modifier = Modifier
+                                    .size(8.dp)
+                                    .clip(CircleShape)
+                                    .background(onlineGreen)
+                            )
+                            Text(
+                                "En línea",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = onlineGreen,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
                     }
                 }
             }
@@ -160,22 +160,14 @@ fun ChatbotScreen(
                         if (!message.isUser) {
                             // Avatar del bot en mensajes
                             Box(
-                                modifier = Modifier
-                                    .size(36.dp)
-                                    .padding(top = 2.dp, end = 12.dp)
-                                    .clip(CircleShape)
-                                    .background(
-                                        brush = Brush.verticalGradient(
-                                            colors = listOf(gradientStart, gradientEnd)
-                                        )
-                                    ),
+                                modifier = Modifier,
                                 contentAlignment = Alignment.Center
                             ) {
                                 Icon(
-                                    Icons.Default.SmartToy,
-                                    contentDescription = null,
-                                    tint = Color.White,
-                                    modifier = Modifier.size(18.dp)
+                                    painter = painterResource(R.drawable.chat_bot),
+                                    contentDescription = "Bot",
+                                    tint = Color.Unspecified, // mantiene colores
+                                    modifier = Modifier.size(50.dp)
                                 )
                             }
                         }
@@ -223,22 +215,14 @@ fun ChatbotScreen(
                             horizontalArrangement = Arrangement.Start
                         ) {
                             Box(
-                                modifier = Modifier
-                                    .size(36.dp)
-                                    .padding(top = 2.dp, end = 12.dp)
-                                    .clip(CircleShape)
-                                    .background(
-                                        brush = Brush.verticalGradient(
-                                            colors = listOf(gradientStart, gradientEnd)
-                                        )
-                                    ),
+                                modifier = Modifier,
                                 contentAlignment = Alignment.Center
                             ) {
                                 Icon(
-                                    Icons.Default.SmartToy,
-                                    contentDescription = null,
-                                    tint = Color.White,
-                                    modifier = Modifier.size(18.dp)
+                                    painter = painterResource(R.drawable.chat_bot),
+                                    contentDescription = "Bot",
+                                    tint = Color.Unspecified, // mantiene colores
+                                    modifier = Modifier.size(50.dp)
                                 )
                             }
 

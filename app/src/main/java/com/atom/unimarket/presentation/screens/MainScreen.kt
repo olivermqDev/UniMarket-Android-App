@@ -3,6 +3,7 @@ package com.atom.unimarket.presentation.screens
 
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.*
@@ -24,6 +25,8 @@ import com.atom.unimarket.presentation.navigation.BottomBarScreen
 import com.atom.unimarket.presentation.products.ProductViewModel
 import androidx.compose.material.icons.filled.Chat
 import androidx.compose.material.icons.filled.SmartToy
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.dp
 // --- INICIO DE CAMBIOS ---
 // import androidx.lifecycle.viewmodel.compose.viewModel // <-- 1. ESTE SE VA
 import org.koin.androidx.compose.koinViewModel // <-- 2. AÑADIMOS ESTE
@@ -55,13 +58,18 @@ fun MainScreen(
                 BottomBarScreen.Home.route -> {
                     FloatingActionButton(
                         onClick = {
-                            // CORREGIDO: Usamos el string de la ruta, como en RootNavigation.kt
+                            // Aquí defines qué pasa al hacer click
                             mainNavController.navigate("add_product_screen")
-                        }
+                        },
+                        containerColor = Color.Transparent, // fondo transparente
+                        contentColor = Color.Unspecified,   // mantiene colores originales
+                        elevation = FloatingActionButtonDefaults.elevation(0.dp) // sin sombra
                     ) {
                         Icon(
-                            imageVector = Icons.Default.Add,
-                            contentDescription = "Añadir producto"
+                            painter = painterResource(id = R.drawable.agregar_productos),
+                            contentDescription = "Añadir producto",
+                            tint = Color.Unspecified, // mantiene colores
+                            modifier = Modifier.size(90.dp) // tamaño del icono
                         )
                     }
                 }
@@ -70,11 +78,20 @@ fun MainScreen(
                 BottomBarScreen.Conversations.route -> {
                     FloatingActionButton(
                         onClick = {
-                            // CORREGIDO: Usamos el string de la ruta, como en RootNavigation.kt
+                            // Navegación a la pantalla del chatbot
                             mainNavController.navigate("chatbot_screen")
-                        }
+                        },
+                        containerColor = Color.Transparent, // fondo transparente
+                        contentColor = Color.Unspecified,   // mantiene los colores originales del icono
+                        elevation = FloatingActionButtonDefaults.elevation(0.dp) // sin sombra
                     ) {
-                        Icon(Icons.Default.SmartToy, contentDescription = "Asistente de IA")
+                        Icon(
+                            painter = painterResource(id = R.drawable.chat_bot),
+                            contentDescription = "Asistente de IA",
+                            tint = Color.Unspecified, // mantiene los colores originales
+                            modifier = Modifier.size(90.dp) // tamaño del icono
+                                .padding(bottom = 15.dp)
+                        )
                     }
                 }
 
@@ -102,7 +119,7 @@ fun BottomBar(navController: NavHostController) {
         BottomBarScreen.Home,
         BottomBarScreen.Conversations,
         BottomBarScreen.Profile,
-        BottomBarScreen.Dashboard, // ✅ AÑADIDO BOTON DE DASHBOARD
+        BottomBarScreen.Dashboard, //  AÑADIDO BOTON DE DASHBOARD
     )
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
@@ -126,7 +143,12 @@ fun RowScope.AddItem(
 ) {
     NavigationBarItem(
         label = { Text(text = screen.title) },
-        icon = { Icon(imageVector = screen.icon, contentDescription = "Navigation Icon") },
+        icon = { Icon(
+            painter = painterResource(id = screen.iconResId),
+            contentDescription = screen.title,
+            tint = Color.Unspecified, //Mantiene los colores originales
+            modifier = Modifier.size(40.dp) //  aquí cambias el tamaño
+        )},
         selected = currentDestination?.hierarchy?.any {
             it.route == screen.route
         } == true,
