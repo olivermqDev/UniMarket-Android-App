@@ -11,6 +11,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material3.*
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -44,9 +45,26 @@ fun ProductsScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp, vertical = 8.dp),
-            label = { Text("Buscar productos...") },
+            // label = { Text("Buscar productos...") }, // Removed label
             leadingIcon = { Icon(Icons.Default.Search, contentDescription = "Buscar") },
             singleLine = true,
+            shape = MaterialTheme.shapes.medium, // Apply rounded corners
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedContainerColor = Color.Transparent,
+                unfocusedContainerColor = Color.Transparent,
+                focusedBorderColor = MaterialTheme.colorScheme.primary, // Neon border
+                unfocusedBorderColor = MaterialTheme.colorScheme.primary, // Constant neon border
+                cursorColor = MaterialTheme.colorScheme.primary,
+                // If label is removed, these don't apply directly to the label, but are good for consistency
+                focusedLabelColor = MaterialTheme.colorScheme.primary,
+                unfocusedLabelColor = MaterialTheme.colorScheme.primary,
+                focusedTextColor = MaterialTheme.colorScheme.onBackground,
+                unfocusedTextColor = MaterialTheme.colorScheme.onBackground,
+                focusedLeadingIconColor = MaterialTheme.colorScheme.primary,
+                unfocusedLeadingIconColor = MaterialTheme.colorScheme.primary, // Constant neon icon color
+                focusedTrailingIconColor = MaterialTheme.colorScheme.primary,
+                unfocusedTrailingIconColor = MaterialTheme.colorScheme.primary, // Constant neon icon color
+            ),
             trailingIcon = {
                 if (productState.searchQuery.isNotEmpty()) {
                     IconButton(onClick = { productViewModel.onSearchQueryChange("") }) {
@@ -57,16 +75,31 @@ fun ProductsScreen(
         )
         LazyRow(
             modifier = Modifier.fillMaxWidth(),
-            contentPadding = PaddingValues(horizontal = 16.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+            contentPadding = PaddingValues(start = 16.dp, bottom = 16.dp),
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             items(categories) { category ->
+                val isSelected = (productState.selectedCategory ?: "Todas") == category
                 FilterChip(
-                    selected = (productState.selectedCategory ?: "Todas") == category,
+                    selected = isSelected,
                     onClick = {
                         val newCategory = if (category == "Todas") null else category
                         productViewModel.onCategorySelected(newCategory)
                     },
+                    shape = MaterialTheme.shapes.small, // Apply rounded corners
+                    colors = FilterChipDefaults.filterChipColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant, // Fondo de tarjeta morado oscuro
+                        selectedContainerColor = MaterialTheme.colorScheme.secondary, // Fondo Neón vibrante
+                        labelColor = MaterialTheme.colorScheme.onSurface, // Texto blanco/claro
+                        selectedLabelColor = MaterialTheme.colorScheme.onSecondary, // Texto blanco/claro sobre Neón
+                    ),
+                    border = FilterChipDefaults.filterChipBorder(
+                        enabled = true,
+                        selected = isSelected,
+                        borderColor = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.5f), // Borde apagado
+                        selectedBorderColor = MaterialTheme.colorScheme.secondary, // Borde Neón encendido
+                        borderWidth = 1.dp
+                    ),
                     label = { Text(category) }
                 )
             }
@@ -74,8 +107,8 @@ fun ProductsScreen(
 
         Box(
             modifier = Modifier
-                .fillMaxSize()
-                .padding(top = 8.dp),
+                .fillMaxSize(),
+             //   .padding(top = 8.dp),
             contentAlignment = Alignment.Center
         ) {
             if (productState.isLoading && productState.products.isEmpty()) {
@@ -129,15 +162,17 @@ fun ProductCard(
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+        shape = MaterialTheme.shapes.medium, // Apply rounded corners
+        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp), // Increase elevation for glow effect
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant), // Use surfaceVariant for card background
         onClick = onClick
     ) {
         Box {
             Column {
                 SubcomposeAsyncImage(
                     model = product.imageUrls.firstOrNull(),
-                    loading = { CircularProgressIndicator() },
-                    error = { Icon(Icons.Default.BrokenImage, "Error") },
+                    loading = { CircularProgressIndicator(color = MaterialTheme.colorScheme.primary) }, // Use primary color for loading indicator
+                    error = { Icon(Icons.Default.BrokenImage, "Error", tint = MaterialTheme.colorScheme.error) }, // Use error color for error icon
                     contentDescription = product.name,
                     modifier = Modifier
                         .height(120.dp)
@@ -145,9 +180,12 @@ fun ProductCard(
                     contentScale = ContentScale.Crop
                 )
                 Column(modifier = Modifier.padding(12.dp)) {
-                    Text(text = product.name, style = MaterialTheme.typography.titleMedium)
-                    // Puedes mostrar el precio formateado si lo prefieres
-                    Text(text = "S/ ${"%.2f".format(product.price)}", style = MaterialTheme.typography.bodyLarge)
+                    Text(text = product.name, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant) // Ensure text is visible on surfaceVariant
+                    Text(
+                        text = "S/ ${"%.2f".format(product.price)}",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.primary // Neon color for price
+                    )
                 }
             }
 
@@ -161,7 +199,7 @@ fun ProductCard(
                 Icon(
                     imageVector = if (isFavorite) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
                     contentDescription = "Marcar como favorito",
-                    tint = if (isFavorite) Color.Red else Color.White
+                    tint = if (isFavorite) MaterialTheme.colorScheme.tertiary else Color.LightGray // Neon color for favorite icon
                 )
             }
         }
