@@ -13,6 +13,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons // --- NUEVO ---
+import androidx.compose.material.icons.outlined.AddHome
 import androidx.compose.material.icons.outlined.FavoriteBorder // --- NUEVO ---
 import androidx.compose.material.icons.outlined.Shop
 import androidx.compose.material.icons.outlined.ShoppingCart // --- NUEVO ---
@@ -122,6 +123,16 @@ fun ProfileScreen(
                 navController.navigate("cart_screen")
             }
         )
+        // ---NUEVO CAMBIO : Opcion para agregar direccion
+        ListItem(
+            headlineContent = { Text("Administrar direcciones") },
+            leadingContent = { Icon(Icons.Outlined.AddHome, contentDescription = null) },
+            modifier = Modifier.clickable {
+                // Navegaremos a la nueva pantalla de productos en venta
+                navController.navigate("add_address_screen")
+            }
+        )
+
         // ---NUEVO CAMBIO : Opcion para ver productos en venta
         ListItem(
             headlineContent = { Text("Mis productos en venta") },

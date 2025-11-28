@@ -23,6 +23,7 @@ import com.atom.unimarket.presentation.chat.ChatViewModel
 import com.atom.unimarket.presentation.dashboard.DashboardViewModel
 import com.atom.unimarket.presentation.products.ProductViewModel
 import com.atom.unimarket.presentation.screens.*
+import com.atom.unimarket.screens.CartScreen
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -121,7 +122,7 @@ fun RootNavigation() {
         composable(route = "cart_screen") {
             CartScreen(
                 navController = mainNavController,
-                productViewModel = productViewModel
+                viewModel = productViewModel
             )
         }
         // --- NUEVO : Añadida ruta a MyProductsScreen

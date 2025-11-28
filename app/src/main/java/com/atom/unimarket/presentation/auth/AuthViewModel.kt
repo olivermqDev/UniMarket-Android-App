@@ -176,6 +176,43 @@ class AuthViewModel(
     fun updateDisplayName(newName: String) {
         // ... (código existente sin cambios)
     }
+    fun updateAddress(imageUri: Uri, onComplete: (success: Boolean, error: String?) -> Unit) {
+        viewModelScope.launch {
+            // Obtenemos el ID del usuario de forma segura.
+            val userId = auth.currentUser?.uid
+            if (userId == null) {
+                // Si no hay usuario, llamamos al callback con error y salimos.
+                onComplete(false, "Usuario no autenticado.")
+                return@launch
+            }
+
+            try {
+                // Indicador de carga (opcional pero bueno para la UX)
+                _authState.value = _authState.value.copy(isLoading = true)
+
+                val imageRef = storage.reference.child("profile_images/${userId}/${UUID.randomUUID()}.jpg")
+                val uploadTask = imageRef.putFile(imageUri).await()
+                val downloadUrl = uploadTask.storage.downloadUrl.await().toString()
+
+                // Actualizamos el campo en Firestore
+                firestore.collection("users").document(userId).update("photoUrl", downloadUrl).await()
+
+                // 2. LLAMAR AL CALLBACK CON ÉXITO
+                // El listener de Firestore se encargará de actualizar el estado,
+                // pero este callback nos permite mostrar un Toast en el momento preciso.
+                onComplete(true, null)
+
+                // Ya no es necesario el isLoading porque el listener actualizará el estado
+                // _authState.value = _authState.value.copy(isLoading = false)
+
+            } catch (e: Exception) {
+                // 3. LLAMAR AL CALLBACK CON ERROR
+                onComplete(false, e.message)
+                // Actualizamos el estado para reflejar el error
+                _authState.value = _authState.value.copy(isLoading = false, error = e.message)
+            }
+        }
+    }
 
     fun signOut() {
         auth.signOut()

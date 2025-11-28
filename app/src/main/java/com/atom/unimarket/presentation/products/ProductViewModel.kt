@@ -3,7 +3,9 @@ package com.atom.unimarket.presentation.products
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.atom.unimarket.presentation.data.Order
 import com.atom.unimarket.presentation.data.Product
+import com.atom.unimarket.presentation.data.toOrderItem
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
@@ -37,7 +39,9 @@ data class CartState(
     val cartProducts: List<Product> = emptyList(),
     val totalPrice: Double = 0.0,
     val isLoading: Boolean = false,
-    val error: String? = null
+    val error: String? = null,
+    val checkoutSuccess: Boolean = false
+
 )
 
 class ProductViewModel(
@@ -118,9 +122,41 @@ class ProductViewModel(
             }
     }
 
+    //---NUEVO : Cargar los productos publicados del usuario
+    fun loadUserProducts() {
+        val userId = getCurrentUserId() ?: return
+
+        _productState.update { it.copy(isLoading = true) }
+
+        // Escuchar solo los productos del usuario actual
+        productListener?.remove()
+        productListener = firestore.collection("products")
+            .whereEqualTo("sellerUid", userId)
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    _productState.update {
+                        it.copy(isLoading = false, error = "Error: ${error.message}")
+                    }
+                    return@addSnapshotListener
+                }
+
+                if (snapshot != null) {
+                    val userProducts = snapshot.toObjects(Product::class.java)
+                    _productState.update {
+                        it.copy(
+                            isLoading = false,
+                            products = userProducts,
+                            error = null
+                        )
+                    }
+                }
+            }
+    }
+
     private fun filterProducts() {
         val query = _productState.value.searchQuery
         val category = _productState.value.selectedCategory
+        val currentUserId = getCurrentUserId()
 
         val filteredList = allProducts.filter { product ->
             val matchesSearch = if (query.isBlank()) {
@@ -133,7 +169,10 @@ class ProductViewModel(
             } else {
                 product.category.equals(category, ignoreCase = true)
             }
-            matchesSearch && matchesCategory
+            // ---NUEVO: Excluir productos del usuario actual
+            val isNotOwnProduct = product.sellerUid != currentUserId
+
+            matchesSearch && matchesCategory && isNotOwnProduct
         }
 
         _productState.update { it.copy(isLoading = false, products = filteredList) }
@@ -204,6 +243,7 @@ class ProductViewModel(
                 _productState.update { it.copy(isLoading = false, error = "Error al cargar: ${exception.message}") }
             }
     }
+
     // --- FIN DE CAMBIOS (getProductById) ---
 
     // --- 4. NUEVA FUNCIÓN DE LIMPIEZA ---
@@ -251,16 +291,39 @@ class ProductViewModel(
         }
     }
 
-    // --- LÓGICA DEL CARRITO DE COMPRAS (Sin cambios) ---
+    // ---NUEVO: LÓGICA DEL CARRITO DE COMPRAS ACTUALIZADA ---
+
 
     fun addToCart(productId: String) {
         val userId = getCurrentUserId() ?: return
+
+        // Verificamos si ya está en el carrito localmente para evitar llamadas innecesarias
+        if (_cartState.value.cartProducts.any { it.id == productId }) {
+            _cartState.update { it.copy(error = "Este producto ya está en tu carrito") }
+            return
+        }
+
         viewModelScope.launch {
             try {
                 val cartRef = firestore.collection("users").document(userId).collection("cart").document(productId)
-                cartRef.set(mapOf("quantity" to FieldValue.increment(1)), com.google.firebase.firestore.SetOptions.merge()).await()
+                // Simplemente guardamos el documento. Quantity siempre es 1.
+                cartRef.set(mapOf("quantity" to 1, "addedAt" to FieldValue.serverTimestamp())).await()
+                getCartContents()
             } catch (e: Exception) {
                 _cartState.update { it.copy(error = "Error al añadir al carrito: ${e.message}") }
+            }
+        }
+    }
+
+
+    fun removeFromCart(productId: String) {
+        val userId = getCurrentUserId() ?: return
+        viewModelScope.launch {
+            try {
+                firestore.collection("users").document(userId).collection("cart").document(productId).delete().await()
+                getCartContents()
+            } catch (e: Exception) {
+                _cartState.update { it.copy(error = "Error al eliminar producto: ${e.message}") }
             }
         }
     }
@@ -272,29 +335,26 @@ class ProductViewModel(
         viewModelScope.launch {
             try {
                 val cartSnapshot = firestore.collection("users").document(userId).collection("cart").get().await()
-                val cartItemsMap = cartSnapshot.documents.associate { it.id to (it.getLong("quantity")?.toInt() ?: 0) }
-                val productIds = cartItemsMap.keys.toList()
+                val productIds = cartSnapshot.documents.map { it.id }
 
                 if (productIds.isEmpty()) {
-                    _cartState.update { it.copy(isLoading = false) }
+                    _cartState.update { it.copy(isLoading = false, cartProducts = emptyList(), totalPrice = 0.0) }
                     return@launch
                 }
 
+                // Firestore 'in' query supports up to 10 items normally
                 val productsList = firestore.collection("products")
                     .whereIn("id", productIds)
                     .get()
                     .await()
                     .toObjects(Product::class.java)
 
-                var total = 0.0
-                for (product in productsList) {
-                    total += product.price * (cartItemsMap[product.id] ?: 0)
-                }
+                // Cálculo simple: Suma de precios (ya que cantidad siempre es 1)
+                val total = productsList.sumOf { it.price }
 
                 _cartState.update {
                     it.copy(
                         isLoading = false,
-                        cartItems = cartItemsMap,
                         cartProducts = productsList,
                         totalPrice = total
                     )
@@ -304,6 +364,58 @@ class ProductViewModel(
             }
         }
     }
+    fun checkout() {
+        val userId = getCurrentUserId() ?: return
+        val currentState = _cartState.value
+
+        if (currentState.cartProducts.isEmpty()) return
+
+        viewModelScope.launch {
+            _cartState.update { it.copy(isLoading = true, error = null) }
+            try {
+                // 1. Crear items de la orden (sin cantidad variable)
+                val orderItems = currentState.cartProducts.map { it.toOrderItem() }
+
+                // 2. Crear objeto Order
+                val newOrderRef = firestore.collection("orders").document()
+                val order = Order(
+                    id = newOrderRef.id,
+                    buyerId = userId,
+                    items = orderItems,
+                    totalAmount = currentState.totalPrice
+                )
+
+                // 3. Transacción: Guardar orden y vaciar carrito
+                firestore.runBatch { batch ->
+                    batch.set(newOrderRef, order)
+                    currentState.cartProducts.forEach { product ->
+                        val cartItemRef = firestore.collection("users").document(userId)
+                            .collection("cart").document(product.id)
+                        batch.delete(cartItemRef)
+                    }
+                }.await()
+
+                _cartState.update {
+                    it.copy(
+                        isLoading = false,
+                        cartProducts = emptyList(),
+                        totalPrice = 0.0,
+                        checkoutSuccess = true
+                    )
+                }
+            } catch (e: Exception) {
+                _cartState.update { it.copy(isLoading = false, error = "Error en el checkout: ${e.message}") }
+            }
+        }
+    }
+
+
+    fun resetCheckoutState() {
+        _cartState.update { it.copy(checkoutSuccess = false) }
+    }
+
+
+
 }
 
 enum class SortOption(val field: String, val direction: Query.Direction) {
