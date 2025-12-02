@@ -23,6 +23,7 @@ import com.atom.unimarket.presentation.chat.ChatViewModel
 import com.atom.unimarket.presentation.dashboard.DashboardViewModel
 import com.atom.unimarket.presentation.products.ProductViewModel
 import com.atom.unimarket.presentation.screens.*
+import com.atom.unimarket.presentation.cart.CartScreen
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -119,8 +120,49 @@ fun RootNavigation() {
 
         composable(route = "cart_screen") {
             CartScreen(
+                onCheckoutClick = {
+                    // Navigate to checkout screen
+                    mainNavController.navigate("checkout_screen")
+                }
+            )
+        }
+
+        composable(route = "checkout_screen") {
+            com.atom.unimarket.presentation.checkout.CheckoutScreen(
+                onOrderSuccess = {
+                    // Navigate back to home or show success message
+                    mainNavController.navigate("main_screen") {
+                        popUpTo("cart_screen") { inclusive = true }
+                    }
+                }
+            )
+        }
+
+        // --- History Screens ---
+        composable(route = "history_screen") {
+            val historyViewModel: com.atom.unimarket.presentation.history.HistoryViewModel = koinViewModel()
+            com.atom.unimarket.presentation.history.HistoryScreen(
                 navController = mainNavController,
-                productViewModel = productViewModel
+                viewModel = historyViewModel
+            )
+        }
+
+        composable(
+            route = "order_detail_screen/{orderId}",
+            arguments = listOf(navArgument("orderId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val orderId = backStackEntry.arguments?.getString("orderId") ?: return@composable
+            // We reuse the same ViewModel instance if scoped correctly, or create new. 
+            // For simplicity here we might get a new one which re-fetches, or we can scope it.
+            // Given the implementation relies on the list being loaded, we should ideally pass the object or share VM.
+            // For now, let's re-use the VM if possible or just let it re-fetch (it's fast).
+            // Better approach: Scope the VM to a navigation graph, but for now let's just instantiate.
+            val historyViewModel: com.atom.unimarket.presentation.history.HistoryViewModel = koinViewModel()
+            
+            com.atom.unimarket.presentation.history.OrderDetailScreen(
+                navController = mainNavController,
+                viewModel = historyViewModel,
+                orderId = orderId
             )
         }
     }

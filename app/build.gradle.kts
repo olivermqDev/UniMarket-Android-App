@@ -3,7 +3,7 @@ plugins {
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.google.gms.google.services)
-
+    alias(libs.plugins.ksp)
 }
 
 android {
@@ -52,6 +52,7 @@ dependencies {
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
     implementation(libs.androidx.room.ktx)
+    ksp(libs.androidx.room.compiler)
     implementation(libs.androidx.compose.runtime.livedata)
     implementation(libs.androidx.compose.runtime)
     implementation(libs.androidx.compose.foundation.layout)
@@ -80,6 +81,8 @@ dependencies {
     implementation("io.coil-kt:coil-compose:2.6.0")
     // Para la base de datos en tiempo real Cloud Firestore
     implementation("com.google.firebase:firebase-firestore-ktx")
+    // Para Firebase Cloud Messaging (notificaciones push)
+    implementation("com.google.firebase:firebase-messaging-ktx")
     implementation("androidx.compose.material:material-icons-extended")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.8.1")
     implementation("androidx.annotation:annotation:1.8.0") // O una versión más reciente

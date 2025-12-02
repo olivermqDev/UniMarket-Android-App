@@ -25,6 +25,9 @@ import coil.compose.SubcomposeAsyncImage
 import com.atom.unimarket.presentation.chat.ChatViewModel
 import com.atom.unimarket.presentation.navigation.AppScreen
 import com.atom.unimarket.presentation.products.ProductViewModel
+import com.atom.unimarket.presentation.viewmodel.CartViewModel
+import com.atom.unimarket.domain.model.CartItem
+import org.koin.androidx.compose.koinViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -32,7 +35,8 @@ fun ProductDetailScreen(
     productId: String?,
     productViewModel: ProductViewModel,
     chatViewModel: ChatViewModel,
-    navController: NavController
+    navController: NavController,
+    cartViewModel: CartViewModel = koinViewModel()
 ) {
     val state by productViewModel.productState.collectAsState()
 
@@ -149,8 +153,16 @@ fun ProductDetailScreen(
                         // Botón de Añadir al Carrito
                         Button(
                             onClick = {
-                                productViewModel.addToCart(product.id)
-                                // Opcional: Mostrar un Toast o Snackbar
+                                val cartItem = CartItem(
+                                    productId = product.id,
+                                    name = product.name,
+                                    price = product.price,
+                                    quantity = 1,
+                                    imageUrl = product.imageUrls.firstOrNull() ?: "",
+                                    sellerId = product.sellerUid
+                                )
+                                cartViewModel.addToCart(cartItem)
+                                // TODO: Mostrar un Toast o Snackbar
                             },
                             modifier = Modifier
                                 .weight(2f)

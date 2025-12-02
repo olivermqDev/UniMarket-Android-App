@@ -15,6 +15,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons // --- NUEVO ---
 import androidx.compose.material.icons.outlined.FavoriteBorder // --- NUEVO ---
 import androidx.compose.material.icons.outlined.ShoppingCart // --- NUEVO ---
+import androidx.compose.material.icons.filled.List
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -121,6 +122,16 @@ fun ProfileScreen(
                 navController.navigate("cart_screen")
             }
         )
+        
+        // Opción para ver Historial de Pedidos
+        ListItem(
+            headlineContent = { Text("Mis Pedidos") },
+            leadingContent = { Icon(Icons.Filled.List, contentDescription = null) },
+            modifier = Modifier.clickable {
+                navController.navigate("history_screen")
+            }
+        )
+
         Divider()
         // --- FIN DE CAMBIOS ---
 

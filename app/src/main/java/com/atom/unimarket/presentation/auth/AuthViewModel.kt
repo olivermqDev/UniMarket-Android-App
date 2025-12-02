@@ -39,7 +39,8 @@ fun FirebaseAuth.getAuthState(): Flow<FirebaseAuth> = callbackFlow {
 class AuthViewModel(
     private val auth: FirebaseAuth,
     private val firestore: FirebaseFirestore,
-    private val storage: FirebaseStorage
+    private val storage: FirebaseStorage,
+    private val fcmRepository: com.atom.unimarket.domain.repository.FCMRepository
 ) : ViewModel(), KoinComponent {
 // --- FIN DE CAMBIOS ---
 
@@ -90,6 +91,9 @@ class AuthViewModel(
             try {
                 auth.signInWithEmailAndPassword(email, password).await()
                 // El `init` se encargará de detectar el cambio de estado y cargar los datos
+                
+                // Guardar el token FCM después del login exitoso
+                fcmRepository.saveFCMToken()
             } catch (e: Exception) {
                 _authState.value = _authState.value.copy(isLoading = false, error = e.message)
             }
@@ -127,6 +131,9 @@ class AuthViewModel(
                 // 4. Guardar el objeto User en la colección "users" de Firestore
                 firestore.collection("users").document(firebaseUser.uid).set(newUser).await()
                 // El `init` detectará el nuevo usuario y actualizará el estado automáticamente
+                
+                // 5. Guardar el token FCM después del registro exitoso
+                fcmRepository.saveFCMToken()
 
             } catch (e: Exception) {
                 _authState.value = _authState.value.copy(isLoading = false, error = e.message)
