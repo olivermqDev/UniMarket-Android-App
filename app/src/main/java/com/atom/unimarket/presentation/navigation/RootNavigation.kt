@@ -166,6 +166,7 @@ fun RootNavigation() {
             )
         }
 
+        
         // ---NUEVO : Añadida rutas de Metodo de pago
         // Pantalla de Seleccionar Metodo de pago
         composable("payment_method_screen") {
