@@ -42,13 +42,9 @@ fun CartScreen(
         viewModel.getCartContents()
     }
 
-    LaunchedEffect(cartState.checkoutSuccess, cartState.error) {
-        if (cartState.checkoutSuccess) {
-            Toast.makeText(context, "¡Compra realizada con éxito!", Toast.LENGTH_LONG).show()
-            viewModel.resetCheckoutState()
-            navController.popBackStack()
-        }
-        if (cartState.error != null) {
+    // Aquí ya no observamos checkoutSuccess, porque el checkout ocurre en PaymentScreens
+    if (cartState.error != null) {
+        LaunchedEffect(cartState.error) {
             Toast.makeText(context, cartState.error, Toast.LENGTH_LONG).show()
         }
     }
@@ -73,10 +69,12 @@ fun CartScreen(
                 CheckoutBar(
                     total = cartState.totalPrice,
                     isLoading = cartState.isLoading,
-                    onCheckout = { viewModel.checkout() }
+                    //--- NUEVO : Ahora navegamos a la selección de Direccion
+                    onCheckout = { navController.navigate("select_address_screen") }
                 )
             }
         }
+
     ) { paddingValues ->
         Box(
             modifier = Modifier

@@ -364,7 +364,7 @@ class ProductViewModel(
             }
         }
     }
-    fun checkout() {
+    fun checkout(paymentMethod: String) { // <-- AHORA RECIBE EL MÉTODO DE PAGO
         val userId = getCurrentUserId() ?: return
         val currentState = _cartState.value
 
@@ -373,19 +373,17 @@ class ProductViewModel(
         viewModelScope.launch {
             _cartState.update { it.copy(isLoading = true, error = null) }
             try {
-                // 1. Crear items de la orden (sin cantidad variable)
                 val orderItems = currentState.cartProducts.map { it.toOrderItem() }
 
-                // 2. Crear objeto Order
                 val newOrderRef = firestore.collection("orders").document()
                 val order = Order(
                     id = newOrderRef.id,
                     buyerId = userId,
                     items = orderItems,
-                    totalAmount = currentState.totalPrice
+                    totalAmount = currentState.totalPrice,
+                    paymentMethod = paymentMethod // <-- GUARDAMOS EL MÉTODO
                 )
 
-                // 3. Transacción: Guardar orden y vaciar carrito
                 firestore.runBatch { batch ->
                     batch.set(newOrderRef, order)
                     currentState.cartProducts.forEach { product ->

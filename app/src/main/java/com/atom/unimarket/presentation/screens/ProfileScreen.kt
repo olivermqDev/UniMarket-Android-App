@@ -129,7 +129,7 @@ fun ProfileScreen(
             leadingContent = { Icon(Icons.Outlined.AddHome, contentDescription = null) },
             modifier = Modifier.clickable {
                 // Navegaremos a la nueva pantalla de productos en venta
-                navController.navigate("add_address_screen")
+                navController.navigate("my_address_screen")
             }
         )
 

@@ -6,6 +6,7 @@ import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import com.atom.unimarket.presentation.address.AddressViewModel
 import com.atom.unimarket.presentation.chat.ChatViewModel
 import com.atom.unimarket.presentation.products.ProductViewModel
 import com.atom.unimarket.presentation.screens.ConversationsScreen
@@ -22,7 +23,8 @@ fun AppNavigation(
     bottomBarNavController: NavHostController,
     productViewModel: ProductViewModel,
     chatViewModel: ChatViewModel,
-    dashboardViewModel: DashboardViewModel
+    dashboardViewModel: DashboardViewModel,
+    //addressViewModel: AddressViewModel
 
 ) {
     NavHost(

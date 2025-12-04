@@ -18,12 +18,21 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.atom.unimarket.presentation.address.AddressViewModel
 import com.atom.unimarket.presentation.chatbot.ChatbotViewModel
 import com.atom.unimarket.presentation.chat.ChatViewModel
 import com.atom.unimarket.presentation.dashboard.DashboardViewModel
 import com.atom.unimarket.presentation.products.ProductViewModel
 import com.atom.unimarket.presentation.screens.*
 import com.atom.unimarket.screens.CartScreen
+import com.atom.unimarket.screens.MyAddressScreen
+import com.atom.unimarket.screens.AddAddressScreen
+import com.atom.unimarket.screens.CardPaymentScreen
+import com.atom.unimarket.screens.PaymentMethodScreen
+import com.atom.unimarket.screens.SavedCardsScreen
+import com.atom.unimarket.screens.SelectAddressScreen
+import com.atom.unimarket.screens.YapePaymentScreen
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -34,6 +43,8 @@ fun RootNavigation() {
     val chatViewModel: ChatViewModel = koinViewModel() // <-- 3. CAMBIADO
     val chatbotViewModel: ChatbotViewModel = koinViewModel() // <-- 3. CAMBIADO
     val dashboardViewModel : DashboardViewModel = koinViewModel() // <-- 3. CAMBIADO
+    val addressViewModel : AddressViewModel = koinViewModel()  // <-- 3. NUEVO
+
     // --- FIN DE CAMBIOS ---
 
     NavHost(
@@ -132,5 +143,48 @@ fun RootNavigation() {
                 productViewModel = productViewModel
             )
         }
+        // --- NUEVO : Añadida ruta a MyAddressScreen
+        composable(route = "my_address_screen") {
+            MyAddressScreen(
+                navController = mainNavController,
+                viewModel = addressViewModel
+            )
+        }
+
+        // --- NUEVO : Añadida ruta a Agregar Dirección
+        composable(route = "add_address_screen") {
+            AddAddressScreen(
+                navController = mainNavController,
+                viewModel = addressViewModel
+            )
+        }
+        //--- NUEVO : Añadida ruta a Seleccionar Direccion
+        composable("select_address_screen") {
+            SelectAddressScreen(
+                navController = mainNavController,
+                viewModel = addressViewModel // Usamos la misma instancia compartida
+            )
+        }
+
+        // ---NUEVO : Añadida rutas de Metodo de pago
+        // Pantalla de Seleccionar Metodo de pago
+        composable("payment_method_screen") {
+            PaymentMethodScreen(navController = mainNavController, viewModel = productViewModel)
+        }
+
+        // Pantalla de Yape
+        composable("yape_payment_screen") {
+            YapePaymentScreen(navController = mainNavController, viewModel = productViewModel)
+        }
+
+        // Pantalla de Tarjeta
+        composable("card_payment_screen") {
+            CardPaymentScreen(navController = mainNavController)
+        }
+        // Pantalla de Seleccionar Tarjeta
+        composable("saved_cards_screen") {
+            SavedCardsScreen(navController = mainNavController)
+        }
+
     }
 }

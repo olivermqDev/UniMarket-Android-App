@@ -1,6 +1,8 @@
 package com.atom.unimarket.presentation.di
 
+import com.atom.unimarket.presentation.address.AddressViewModel
 import com.atom.unimarket.presentation.auth.AuthViewModel
+import com.atom.unimarket.presentation.card.CardViewModel
 import com.atom.unimarket.presentation.chat.ChatViewModel
 import com.atom.unimarket.presentation.chatbot.ChatbotViewModel
 import com.atom.unimarket.presentation.dashboard.DashboardViewModel
@@ -31,8 +33,12 @@ val appModule = module {
 
     // ChatViewModel necesita Firestore y Auth
     viewModel { ChatViewModel(get(), get()) }
+    //---NUEVO : Añadido AddressViewModel y CardViewModel
+    viewModel { AddressViewModel(get(), get()) }
+    viewModel { CardViewModel(get(), get()) }
 
     // Estos no necesitan dependencias de Firebase (por ahora)
     viewModel { ChatbotViewModel() }
     viewModel { DashboardViewModel() }
+
 }

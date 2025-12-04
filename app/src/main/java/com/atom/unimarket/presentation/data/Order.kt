@@ -25,6 +25,7 @@ data class Order(
     val items: List<OrderItem> = emptyList(),
     val totalAmount: Double = 0.0,
     val status: String = "COMPLETED",
+    val paymentMethod: String = "UNKNOWN", // <-- NUEVO CAMPO
     @ServerTimestamp
     val createdAt: Date? = null
 )
@@ -34,7 +35,7 @@ fun Product.toOrderItem(): OrderItem {
         productId = this.id,
         name = this.name,
         price = this.price,
-        quantity = 1, // Lógica simplificada
+        quantity = 1,
         imageUrl = this.imageUrls.firstOrNull() ?: "",
         sellerId = this.sellerUid
     )
