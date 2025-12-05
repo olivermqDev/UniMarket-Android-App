@@ -133,26 +133,6 @@ fun SaleOrderCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text("Datos del Comprador", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
-                
-                // Chat Button
-                OutlinedButton(
-                    onClick = {
-                        // Navigate to chat with buyer
-                        order.buyerId?.let { buyerId ->
-                            navController.navigate("chat/$buyerId")
-                        }
-                    },
-                    modifier = Modifier.height(32.dp),
-                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Chat,
-                        contentDescription = "Chat",
-                        modifier = Modifier.size(16.dp)
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text("Chat", fontSize = 12.sp)
-                }
             }
             
             Spacer(modifier = Modifier.height(8.dp))
