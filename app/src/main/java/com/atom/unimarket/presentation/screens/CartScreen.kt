@@ -42,7 +42,6 @@ fun CartScreen(
         viewModel.getCartContents()
     }
 
-    // Aquí ya no observamos checkoutSuccess, porque el checkout ocurre en PaymentScreens
     if (cartState.error != null) {
         LaunchedEffect(cartState.error) {
             Toast.makeText(context, cartState.error, Toast.LENGTH_LONG).show()
@@ -69,7 +68,6 @@ fun CartScreen(
                 CheckoutBar(
                     total = cartState.totalPrice,
                     isLoading = cartState.isLoading,
-                    //--- NUEVO : Ahora navegamos a la selección de Direccion
                     onCheckout = { navController.navigate("select_address_screen") }
                 )
             }
@@ -93,6 +91,9 @@ fun CartScreen(
                     items(cartState.cartProducts) { product ->
                         CartItemRow(
                             product = product,
+                            quantity = cartState.cartItems[product.id] ?: 1,
+                            onIncrease = { viewModel.increaseQuantity(product.id) },
+                            onDecrease = { viewModel.decreaseQuantity(product.id) },
                             onDelete = { viewModel.removeFromCart(product.id) }
                         )
                     }
@@ -171,6 +172,9 @@ fun CheckoutBar(total: Double, isLoading: Boolean, onCheckout: () -> Unit) {
 @Composable
 fun CartItemRow(
     product: Product,
+    quantity: Int,
+    onIncrease: () -> Unit,
+    onDecrease: () -> Unit,
     onDelete: () -> Unit
 ) {
     val currencyFormat = NumberFormat.getCurrencyInstance(Locale.getDefault())
@@ -211,12 +215,31 @@ fun CartItemRow(
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.secondary
                 )
-                // Opcional: Mostrar vendedor
+                
                 Text(
                     text = "Vendedor: ${product.sellerName}",
                     style = MaterialTheme.typography.bodySmall,
                     color = Color.Gray
                 )
+                
+                Spacer(modifier = Modifier.height(8.dp))
+                
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(4.dp))
+                ) {
+                    IconButton(onClick = onDecrease, modifier = Modifier.size(32.dp)) {
+                        Text("-", fontWeight = FontWeight.Bold)
+                    }
+                    Text(
+                        text = quantity.toString(),
+                        modifier = Modifier.padding(horizontal = 8.dp),
+                        fontWeight = FontWeight.Bold
+                    )
+                    IconButton(onClick = onIncrease, modifier = Modifier.size(32.dp)) {
+                        Text("+", fontWeight = FontWeight.Bold)
+                    }
+                }
             }
 
             IconButton(onClick = onDelete) {

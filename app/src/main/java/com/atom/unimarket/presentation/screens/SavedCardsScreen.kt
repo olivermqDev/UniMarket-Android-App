@@ -8,7 +8,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.CreditCard
 import androidx.compose.material.icons.filled.Delete
@@ -26,6 +25,7 @@ import androidx.navigation.NavController
 import com.atom.unimarket.presentation.data.SavedCard
 import com.atom.unimarket.presentation.card.CardViewModel
 import com.atom.unimarket.presentation.products.ProductViewModel
+import com.atom.unimarket.presentation.products.PaymentMethod
 import org.koin.androidx.compose.koinViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -97,31 +97,19 @@ fun SavedCardsScreen(
                             onSelect = {
                                 // Pagar directamente con la tarjeta seleccionada
                                 // Usamos el método CARD genérico, ya que la info de pago ya está guardada en el usuario
-                                productViewModel.checkout(PaymentMethods.CARD)
+                                productViewModel.processPayment(PaymentMethod.CARD)
                             },
-                            onDelete = { cardViewModel.deleteCard(card.id) }
+                            onDelete = {
+                                cardViewModel.deleteCard(card.id)
+                            }
                         )
-                    }
-
-                    // Botón para agregar otra tarjeta
-                    item {
-                        OutlinedButton(
-                            onClick = { navController.navigate("card_payment_screen") },
-                            modifier = Modifier.fillMaxWidth().padding(top = 16.dp)
-                        ) {
-                            Icon(Icons.Default.Add, contentDescription = null)
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text("Usar otra tarjeta")
-                        }
                     }
                 }
             }
-
-            // Overlay de carga si se está procesando el pago
+            
+            // Show loading indicator if checkout is in progress
             if (cartState.isLoading) {
-                Box(modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha=0.3f)), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator()
-                }
+                 CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
             }
         }
     }
@@ -207,8 +195,6 @@ fun EmptyCardsView(onAddNew: () -> Unit) {
         Spacer(modifier = Modifier.height(16.dp))
         Text("No tienes tarjetas guardadas", color = Color.Gray)
         Spacer(modifier = Modifier.height(24.dp))
-        Button(onClick = onAddNew) {
-            Text("Agregar una tarjeta nueva")
-        }
+        // Button removed as card payment is disabled
     }
 }

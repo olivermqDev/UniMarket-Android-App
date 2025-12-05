@@ -6,5 +6,7 @@ data class User(
     val displayName: String = "",
     val email: String = "",
     val photoUrl: String = "",
-    val direccion: String = ""
+    val direccion: String = "",
+    val phoneNumber: String = "",
+    val fcmToken: String = ""
 )

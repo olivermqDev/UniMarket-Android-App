@@ -4,11 +4,10 @@ import com.atom.unimarket.presentation.data.Product
 import com.google.firebase.firestore.ServerTimestamp
 import java.util.Date
 import com.atom.unimarket.presentation.data.Address
+
 /**
  * Representa un item dentro de la orden.
  */
-
-
 data class CartItem(
     val id: String = "",
     val productId: String = "",
@@ -22,25 +21,26 @@ data class CartItem(
 data class Order(
     val id: String = "",
     val buyerId: String = "",
-    val buyerName: String = "",           // <-- NUEVO: Nombre del comprador
-    val shippingAddress: Address? = null, // <-- NUEVO: Dirección de envío snapshot
+    val buyerName: String = "",
+    val shippingAddress: Address? = null,
     val items: List<CartItem> = emptyList(),
     val totalAmount: Double = 0.0,
-    val status: String = "COMPLETED",
+    val status: String = "PENDING_VERIFICATION",
     val paymentMethod: String = "UNKNOWN",
-    val sellerIds: List<String> = emptyList(), // <-- NUEVO: IDs de los vendedores involucrados (para búsquedas)
+    val sellerId: String = "", // <-- NUEVO: ID del vendedor único para esta orden
+    val sellerIds: List<String> = emptyList(), // <-- MANTENER: Por compatibilidad
     @ServerTimestamp
     val createdAt: Date? = null
 )
 
-fun Product.toOrderItem(): CartItem {
+fun Product.toOrderItem(quantity: Int = 1): CartItem {
     return CartItem(
         id = this.id,
         productId = this.id,
         name = this.name,
         price = this.price,
         imageUrl = this.imageUrls.firstOrNull() ?: "",
-        quantity = 1,
+        quantity = quantity,
         sellerId = this.sellerUid
     )
 }

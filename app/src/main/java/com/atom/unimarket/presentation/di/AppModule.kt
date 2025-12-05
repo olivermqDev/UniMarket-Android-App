@@ -30,7 +30,8 @@ val appModule = module {
     viewModel { AuthViewModel(get(), get(), get()) }
 
     // ProductViewModel necesita las 3 instancias de Firebase
-    viewModel { ProductViewModel(get(), get(), get()) }
+    // CAMBIO: Usamos 'single' para compartir el estado del carrito y la dirección seleccionada entre pantallas
+    single { ProductViewModel(get(), get(), get()) }
 
     // ChatViewModel necesita Firestore y Auth
     viewModel { ChatViewModel(get(), get()) }
@@ -43,5 +44,17 @@ val appModule = module {
     // Estos no necesitan dependencias de Firebase (por ahora)
     viewModel { ChatbotViewModel() }
     viewModel { DashboardViewModel() }
+
+    // --- Checkout ---
+    single { com.atom.unimarket.presentation.data.repository.CheckoutRepository(get(), get()) }
+    viewModel { com.atom.unimarket.presentation.checkout.CheckoutViewModel(get(), get()) }
+
+    // --- Profile ---
+    single<com.atom.unimarket.presentation.data.repository.UserRepository> { com.atom.unimarket.presentation.data.repository.UserRepositoryImpl(get()) }
+    viewModel { com.atom.unimarket.presentation.profile.EditProfileViewModel(get(), get()) }
+
+    // --- Orders ---
+    single<com.atom.unimarket.presentation.data.repository.OrderRepository> { com.atom.unimarket.presentation.data.repository.OrderRepositoryImpl(get()) }
+    viewModel { com.atom.unimarket.presentation.orders.OrderHistoryViewModel(get(), get()) }
 
 }

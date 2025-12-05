@@ -21,10 +21,9 @@ import kotlinx.coroutines.tasks.await
 import java.util.UUID
 import org.koin.core.component.KoinComponent
 
-// --- INICIO DE CAMBIOS (ProductState) ---
 data class ProductState(
-    val products: List<Product> = emptyList(), // Esta es la lista del CATÁLOGO
-    val selectedProduct: Product? = null, // <-- 1. CAMPO NUEVO para la pantalla de detalle
+    val products: List<Product> = emptyList(),
+    val selectedProduct: Product? = null,
     val isLoading: Boolean = false,
     val error: String? = null,
     val uploadSuccess: Boolean = false,
@@ -33,16 +32,14 @@ data class ProductState(
     val selectedCategory: String? = null,
     val favoriteProductIds: Set<String> = emptySet()
 )
-// --- FIN DE CAMBIOS (ProductState) ---
 
 data class CartState(
-    val cartItems: Map<String, Int> = emptyMap(),
+    val cartItems: Map<String, Int> = emptyMap(), // productId -> quantity
     val cartProducts: List<Product> = emptyList(),
     val totalPrice: Double = 0.0,
     val isLoading: Boolean = false,
     val error: String? = null,
     val checkoutSuccess: Boolean = false
-
 )
 
 class ProductViewModel(
@@ -62,11 +59,12 @@ class ProductViewModel(
     private val _cartState = MutableStateFlow(CartState())
     val cartState = _cartState.asStateFlow()
 
-    private var currentShippingAddress: Address? = null //---NUEVO : Necesario para tener la direccion
+    private var currentShippingAddress: Address? = null
 
     init {
         listenForProductUpdates()
         listenForFavoriteChanges()
+        getCartContents() // Load cart on init
     }
 
     fun setShippingAddress(address: Address) {
@@ -129,13 +127,11 @@ class ProductViewModel(
             }
     }
 
-    //---NUEVO : Cargar los productos publicados del usuario
     fun loadUserProducts() {
         val userId = getCurrentUserId() ?: return
 
         _productState.update { it.copy(isLoading = true) }
 
-        // Escuchar solo los productos del usuario actual
         productListener?.remove()
         productListener = firestore.collection("products")
             .whereEqualTo("sellerUid", userId)
@@ -176,7 +172,6 @@ class ProductViewModel(
             } else {
                 product.category.equals(category, ignoreCase = true)
             }
-            // ---NUEVO: Excluir productos del usuario actual
             val isNotOwnProduct = product.sellerUid != currentUserId
 
             matchesSearch && matchesCategory && isNotOwnProduct
@@ -232,16 +227,12 @@ class ProductViewModel(
         _productState.update { it.copy(error = null, uploadSuccess = false) }
     }
 
-    // --- INICIO DE CAMBIOS (getProductById) ---
     fun getProductById(productId: String) {
-        // 2. Limpiamos el producto anterior y ponemos isLoading
         _productState.update { it.copy(isLoading = true, selectedProduct = null) }
 
         firestore.collection("products").document(productId).get()
             .addOnSuccessListener { document ->
                 val product = document.toObject(Product::class.java)
-                // 3. Ahora actualizamos el campo 'selectedProduct',
-                // ¡NO la lista 'products'!
                 _productState.update {
                     it.copy(isLoading = false, selectedProduct = product)
                 }
@@ -251,14 +242,9 @@ class ProductViewModel(
             }
     }
 
-    // --- FIN DE CAMBIOS (getProductById) ---
-
-    // --- 4. NUEVA FUNCIÓN DE LIMPIEZA ---
-    // La llamaremos al salir de la pantalla de detalle
     fun clearSelectedProduct() {
         _productState.update { it.copy(selectedProduct = null) }
     }
-    // --- FIN DE NUEVA FUNCIÓN ---
 
     fun getCurrentUserId(): String? {
         return auth.currentUser?.uid
@@ -272,8 +258,6 @@ class ProductViewModel(
 
     fun getFavoriteProducts() {
         val userId = getCurrentUserId() ?: return
-        // ¡Esta función SÍ debe modificar la lista 'products'!
-        // Porque la usa FavoritesScreen, que no muestra el catálogo.
         _productState.update { it.copy(isLoading = true, products = emptyList()) }
 
         viewModelScope.launch {
@@ -298,23 +282,20 @@ class ProductViewModel(
         }
     }
 
-    // ---NUEVO: LÓGICA DEL CARRITO DE COMPRAS ACTUALIZADA ---
-
+    // --- CART LOGIC ---
 
     fun addToCart(productId: String) {
         val userId = getCurrentUserId() ?: return
-
-        // Verificamos si ya está en el carrito localmente para evitar llamadas innecesarias
-        if (_cartState.value.cartProducts.any { it.id == productId }) {
-            _cartState.update { it.copy(error = "Este producto ya está en tu carrito") }
-            return
-        }
-
         viewModelScope.launch {
             try {
                 val cartRef = firestore.collection("users").document(userId).collection("cart").document(productId)
-                // Simplemente guardamos el documento. Quantity siempre es 1.
-                cartRef.set(mapOf("quantity" to 1, "addedAt" to FieldValue.serverTimestamp())).await()
+                val snapshot = cartRef.get().await()
+                if (snapshot.exists()) {
+                    val currentQuantity = snapshot.getLong("quantity")?.toInt() ?: 1
+                    cartRef.update("quantity", currentQuantity + 1).await()
+                } else {
+                    cartRef.set(mapOf("productId" to productId, "quantity" to 1, "addedAt" to FieldValue.serverTimestamp())).await()
+                }
                 getCartContents()
             } catch (e: Exception) {
                 _cartState.update { it.copy(error = "Error al añadir al carrito: ${e.message}") }
@@ -322,101 +303,145 @@ class ProductViewModel(
         }
     }
 
+    fun increaseQuantity(productId: String) {
+        val userId = getCurrentUserId() ?: return
+        viewModelScope.launch {
+            try {
+                val cartRef = firestore.collection("users").document(userId).collection("cart").document(productId)
+                val snapshot = cartRef.get().await()
+                if (snapshot.exists()) {
+                    val currentQuantity = snapshot.getLong("quantity")?.toInt() ?: 1
+                    cartRef.update("quantity", currentQuantity + 1).await()
+                    getCartContents()
+                }
+            } catch (e: Exception) {
+                _cartState.update { it.copy(error = "Error al aumentar cantidad: ${e.message}") }
+            }
+        }
+    }
+
+    fun decreaseQuantity(productId: String) {
+        val userId = getCurrentUserId() ?: return
+        viewModelScope.launch {
+            try {
+                val cartRef = firestore.collection("users").document(userId).collection("cart").document(productId)
+                val snapshot = cartRef.get().await()
+                if (snapshot.exists()) {
+                    val currentQuantity = snapshot.getLong("quantity")?.toInt() ?: 1
+                    if (currentQuantity > 1) {
+                        cartRef.update("quantity", currentQuantity - 1).await()
+                    } else {
+                        cartRef.delete().await()
+                    }
+                    getCartContents()
+                }
+            } catch (e: Exception) {
+                _cartState.update { it.copy(error = "Error al disminuir cantidad: ${e.message}") }
+            }
+        }
+    }
 
     fun removeFromCart(productId: String) {
         val userId = getCurrentUserId() ?: return
         viewModelScope.launch {
             try {
-                firestore.collection("users").document(userId).collection("cart").document(productId).delete().await()
+                firestore.collection("users").document(userId)
+                    .collection("cart").document(productId)
+                    .delete()
+                    .await()
                 getCartContents()
             } catch (e: Exception) {
-                _cartState.update { it.copy(error = "Error al eliminar producto: ${e.message}") }
+                _cartState.update { it.copy(error = "Error al eliminar del carrito: ${e.message}") }
             }
         }
     }
 
     fun getCartContents() {
         val userId = getCurrentUserId() ?: return
-        _cartState.update { it.copy(isLoading = true, cartProducts = emptyList(), totalPrice = 0.0) }
-
+        _cartState.update { it.copy(isLoading = true) }
         viewModelScope.launch {
             try {
                 val cartSnapshot = firestore.collection("users").document(userId).collection("cart").get().await()
-                val productIds = cartSnapshot.documents.map { it.id }
+                val cartItems = cartSnapshot.documents.associate { doc ->
+                    doc.id to (doc.getLong("quantity")?.toInt() ?: 1)
+                }
 
-                if (productIds.isEmpty()) {
-                    _cartState.update { it.copy(isLoading = false, cartProducts = emptyList(), totalPrice = 0.0) }
+                if (cartItems.isEmpty()) {
+                    _cartState.update { it.copy(isLoading = false, cartProducts = emptyList(), cartItems = emptyMap(), totalPrice = 0.0) }
                     return@launch
                 }
 
-                // Firestore 'in' query supports up to 10 items normally
-                val productsList = firestore.collection("products")
-                    .whereIn("id", productIds)
+                val products = firestore.collection("products")
+                    .whereIn("id", cartItems.keys.toList())
                     .get()
                     .await()
                     .toObjects(Product::class.java)
 
-                // Cálculo simple: Suma de precios (ya que cantidad siempre es 1)
-                val total = productsList.sumOf { it.price }
+                val totalPrice = products.sumOf { product ->
+                    product.price * (cartItems[product.id] ?: 1)
+                }
 
                 _cartState.update {
-                    it.copy(
-                        isLoading = false,
-                        cartProducts = productsList,
-                        totalPrice = total
-                    )
+                    it.copy(isLoading = false, cartProducts = products, cartItems = cartItems, totalPrice = totalPrice)
                 }
             } catch (e: Exception) {
-                _cartState.update { it.copy(isLoading = false, error = "Error al cargar el carrito: ${e.message}") }
+                _cartState.update { it.copy(isLoading = false, error = "Error al cargar carrito: ${e.message}") }
             }
         }
     }
+
     fun checkout(paymentMethod: String) {
         val userId = getCurrentUserId() ?: return
-        val currentUser = auth.currentUser
         val currentState = _cartState.value
 
         if (currentState.cartProducts.isEmpty()) return
 
-        // Validación básica de dirección
         if (currentShippingAddress == null) {
             _cartState.update { it.copy(error = "Error: No se ha seleccionado una dirección de envío.") }
             return
         }
 
+        _cartState.update { it.copy(isLoading = true, error = null) }
+
         viewModelScope.launch {
-            _cartState.update { it.copy(isLoading = true, error = null) }
             try {
-                val orderItems = currentState.cartProducts.map { it.toOrderItem() }
+                val batch = firestore.batch()
+                val orderId = UUID.randomUUID().toString()
+                
+                // Create Order Items with correct quantity
+                val orderItems = currentState.cartProducts.map { product ->
+                    val quantity = currentState.cartItems[product.id] ?: 1
+                    product.toOrderItem(quantity)
+                }
 
-                // Extraemos los IDs de los vendedores involucrados para consultas rápidas
-                val involvedSellerIds = orderItems.map { it.sellerId }.distinct()
-
-                val newOrderRef = firestore.collection("orders").document()
                 val order = Order(
-                    id = newOrderRef.id,
+                    id = orderId,
                     buyerId = userId,
-                    buyerName = currentUser?.displayName ?: "Usuario Anónimo", // <-- Nombre comprador
-                    shippingAddress = currentShippingAddress,                  // <-- Dirección
                     items = orderItems,
                     totalAmount = currentState.totalPrice,
-                    paymentMethod = paymentMethod,
-                    sellerIds = involvedSellerIds                              // <-- Lista de vendedores
+                    status = "Pendiente",
+                    createdAt = null, // Server timestamp
+                    shippingAddress = currentShippingAddress,
+                    paymentMethod = paymentMethod
                 )
 
-                firestore.runBatch { batch ->
-                    batch.set(newOrderRef, order)
-                    currentState.cartProducts.forEach { product ->
-                        val cartItemRef = firestore.collection("users").document(userId)
-                            .collection("cart").document(product.id)
-                        batch.delete(cartItemRef)
-                    }
-                }.await()
+                val orderRef = firestore.collection("orders").document(orderId)
+                batch.set(orderRef, order)
+                // Important: Set server timestamp for createdAt
+                batch.update(orderRef, "createdAt", FieldValue.serverTimestamp())
+
+                // Clear cart
+                currentState.cartProducts.forEach { product ->
+                    val cartItemRef = firestore.collection("users").document(userId)
+                        .collection("cart").document(product.id)
+                    batch.delete(cartItemRef)
+                }
+
+                batch.commit().await()
 
                 _cartState.update {
-                    it.copy(isLoading = false, cartProducts = emptyList(), totalPrice = 0.0, checkoutSuccess = true)
+                    it.copy(isLoading = false, cartProducts = emptyList(), cartItems = emptyMap(), totalPrice = 0.0, checkoutSuccess = true)
                 }
-                // Limpiar dirección temporal
                 currentShippingAddress = null
 
             } catch (e: Exception) {
@@ -425,12 +450,13 @@ class ProductViewModel(
         }
     }
 
-
     fun resetCheckoutState() {
         _cartState.update { it.copy(checkoutSuccess = false) }
     }
 
-
+    fun processPayment(method: PaymentMethod) {
+        checkout(method.name)
+    }
 
 }
 
@@ -438,4 +464,8 @@ enum class SortOption(val field: String, val direction: Query.Direction) {
     NEWEST_FIRST("createdAt", Query.Direction.DESCENDING),
     PRICE_ASC("price", Query.Direction.ASCENDING),
     PRICE_DESC("price", Query.Direction.DESCENDING)
+}
+
+enum class PaymentMethod {
+    CARD, YAPE, CASH
 }

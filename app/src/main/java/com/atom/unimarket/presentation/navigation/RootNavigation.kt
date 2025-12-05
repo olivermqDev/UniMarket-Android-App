@@ -9,10 +9,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-// --- INICIO DE CAMBIOS ---
-// import androidx.lifecycle.viewmodel.compose.viewModel // <-- 1. ESTE SE VA
-import org.koin.androidx.compose.koinViewModel // <-- 2. AÑADIMOS ESTE
-// --- FIN DE CAMBIOS ---
+import org.koin.androidx.compose.koinViewModel
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -27,33 +24,25 @@ import com.atom.unimarket.presentation.screens.*
 import com.atom.unimarket.screens.CartScreen
 import com.atom.unimarket.screens.MyAddressScreen
 import com.atom.unimarket.screens.AddAddressScreen
-import com.atom.unimarket.screens.CardPaymentScreen
-import com.atom.unimarket.screens.PaymentMethodScreen
+import com.atom.unimarket.presentation.screens.PaymentMethodScreen
 import com.atom.unimarket.screens.SalesHistoryScreen
 import com.atom.unimarket.screens.SavedCardsScreen
 import com.atom.unimarket.screens.SelectAddressScreen
-import com.atom.unimarket.screens.YapePaymentScreen
-
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RootNavigation() {
     val mainNavController = rememberNavController()
-    // --- INICIO DE CAMBIOS ---
-    val productViewModel: ProductViewModel = koinViewModel() // <-- 3. CAMBIADO
-    val chatViewModel: ChatViewModel = koinViewModel() // <-- 3. CAMBIADO
-    val chatbotViewModel: ChatbotViewModel = koinViewModel() // <-- 3. CAMBIADO
-    val dashboardViewModel : DashboardViewModel = koinViewModel() // <-- 3. CAMBIADO
-    val addressViewModel : AddressViewModel = koinViewModel()  // <-- 3. NUEVO
-
-    // --- FIN DE CAMBIOS ---
+    val productViewModel: ProductViewModel = koinViewModel()
+    val chatViewModel: ChatViewModel = koinViewModel()
+    val chatbotViewModel: ChatbotViewModel = koinViewModel()
+    val dashboardViewModel : DashboardViewModel = koinViewModel()
+    val addressViewModel : AddressViewModel = koinViewModel()
 
     NavHost(
         navController = mainNavController,
-        // --- CORREGIDO: Usamos AppScreen para la ruta inicial ---
         startDestination = AppScreen.Login.route
     ) {
-        // --- CORREGIDO: Todas las rutas usan AppScreen ---
         composable(route = AppScreen.Login.route) {
             LoginScreen(navController = mainNavController)
         }
@@ -61,7 +50,7 @@ fun RootNavigation() {
             SignUpScreen(navController = mainNavController)
         }
 
-        composable(route = "main_screen") { // Esta es una ruta especial para el contenedor, está bien como string
+        composable(route = "main_screen") {
             MainScreen(
                 mainNavController = mainNavController,
                 productViewModel = productViewModel,
@@ -69,9 +58,7 @@ fun RootNavigation() {
             )
         }
 
-        // --- RUTA CLAVE CORREGIDA ---
         composable(
-            // La ruta se construye usando el objeto AppScreen y el argumento
             route = "${AppScreen.ProductDetail.route}/{productId}",
             arguments = listOf(navArgument("productId") { type = NavType.StringType })
         ) { backStackEntry ->
@@ -84,7 +71,6 @@ fun RootNavigation() {
             )
         }
 
-        // --- RUTA CLAVE CORREGIDA ---
         composable(
             route = "${AppScreen.Chat.route}/{chatId}",
             arguments = listOf(navArgument("chatId") { type = NavType.StringType })
@@ -106,13 +92,13 @@ fun RootNavigation() {
 
         composable(route = AppScreen.Chatbot.route) {
             ChatbotScreen(
-                chatbotViewModel = chatbotViewModel, // <-- Este está bien
-                onNavigateBack = { // <-- Este es el parámetro que faltaba
-                    mainNavController.popBackStack() // <-- Aquí pones la lógica de navegación
+                chatbotViewModel = chatbotViewModel,
+                onNavigateBack = {
+                    mainNavController.popBackStack()
                 }
             )
         }
-        //Se agrego el Dashboard
+        
         composable(BottomBarScreen.Dashboard.route) {
             DashboardScreen(
                 navController = mainNavController,
@@ -120,16 +106,12 @@ fun RootNavigation() {
             )
         }
 
-        // Placeholders para Favoritos y Carrito (usando strings simples por ahora)
-        // --- NUEVO: Registrar las pantallas de Favoritos y Carrito ---
-        // --- NUEVO: Registrar las pantallas de Favoritos y Carrito ---
         composable(route = "favorites_screen") {
-            // Llamada al Composable real que acabamos de crear
             FavoritesScreen(
                 navController = mainNavController,
                 productViewModel = productViewModel
-            )}
-
+            )
+        }
 
         composable(route = "cart_screen") {
             CartScreen(
@@ -137,14 +119,14 @@ fun RootNavigation() {
                 viewModel = productViewModel
             )
         }
-        // --- NUEVO : Añadida ruta a MyProductsScreen
+        
         composable(route = "my_products_screen") {
             MyProductsScreen(
                 navController = mainNavController,
                 productViewModel = productViewModel
             )
         }
-        // --- NUEVO : Añadida ruta a MyAddressScreen
+
         composable(route = "my_address_screen") {
             MyAddressScreen(
                 navController = mainNavController,
@@ -152,45 +134,38 @@ fun RootNavigation() {
             )
         }
 
-        // --- NUEVO : Añadida ruta a Agregar Dirección
         composable(route = "add_address_screen") {
             AddAddressScreen(
                 navController = mainNavController,
                 viewModel = addressViewModel
             )
         }
-        //--- NUEVO : Añadida ruta a Seleccionar Direccion
+
         composable("select_address_screen") {
             SelectAddressScreen(
                 navController = mainNavController,
-                viewModel = addressViewModel // Usamos la misma instancia compartida
+                viewModel = addressViewModel
             )
         }
 
-
-        // ---NUEVO : Añadida rutas de Metodo de pago
-        // Pantalla de Seleccionar Metodo de pago
         composable("payment_method_screen") {
-            PaymentMethodScreen(navController = mainNavController, viewModel = productViewModel)
+            PaymentMethodScreen(navController = mainNavController)
         }
 
-        // Pantalla de Yape
-        composable("yape_payment_screen") {
-            YapePaymentScreen(navController = mainNavController, viewModel = productViewModel)
-        }
-
-        // Pantalla de Tarjeta
-        composable("card_payment_screen") {
-            CardPaymentScreen(navController = mainNavController)
-        }
-        // Pantalla de Seleccionar Tarjeta
         composable("saved_cards_screen") {
             SavedCardsScreen(navController = mainNavController)
         }
-        //--- NUEVO: Añadido Pantalla de Historial de Ventas
+
         composable("sales_history_screen") {
             SalesHistoryScreen(navController = mainNavController)
         }
+        
+        composable("order_history_screen") {
+            OrderHistoryScreen(navController = mainNavController)
+        }
 
+        composable(route = AppScreen.EditProfile.route) {
+            EditProfileScreen(navController = mainNavController)
+        }
     }
 }
