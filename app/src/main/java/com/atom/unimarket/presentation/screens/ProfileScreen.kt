@@ -114,13 +114,13 @@ fun ProfileScreen(
             }
         )
 
-        // Opción para ver el Carrito
+        //--- NUEVO : Reemplazado opcion de ver carrito con Historial de Ventas
         ListItem(
-            headlineContent = { Text("Mi Carrito de Compras") },
+            headlineContent = { Text("Historial de Ventas") },
             leadingContent = { Icon(Icons.Outlined.ShoppingCart, contentDescription = null) },
             modifier = Modifier.clickable {
                 // Navegaremos a la nueva pantalla del carrito
-                navController.navigate("cart_screen")
+                navController.navigate("sales_history_screen")
             }
         )
         // ---NUEVO CAMBIO : Opcion para agregar direccion

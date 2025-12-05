@@ -23,13 +23,15 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.atom.unimarket.presentation.data.Address
 import com.atom.unimarket.presentation.address.AddressViewModel
+import com.atom.unimarket.presentation.products.ProductViewModel
 import org.koin.androidx.compose.koinViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SelectAddressScreen(
     navController: NavController,
-    viewModel: AddressViewModel = koinViewModel()
+    viewModel: AddressViewModel = koinViewModel(),
+    productViewModel: ProductViewModel = koinViewModel() // <-- Inyectamos también este VM
 ) {
     val state by viewModel.state.collectAsState()
 
@@ -47,7 +49,6 @@ fun SelectAddressScreen(
                     }
                 },
                 actions = {
-                    // Acceso rápido para agregar nueva dirección
                     IconButton(onClick = { navController.navigate("add_address_screen") }) {
                         Icon(Icons.Default.Add, contentDescription = "Nueva Dirección")
                     }
@@ -55,38 +56,37 @@ fun SelectAddressScreen(
             )
         },
         bottomBar = {
-            // Solo mostramos el botón de continuar si hay direcciones y una seleccionada
             if (state.addresses.isNotEmpty()) {
                 Button(
                     onClick = {
                         if (state.selectedAddressId != null) {
-                            navController.navigate("payment_method_screen")
+                            // --- PASO CLAVE: Guardamos la dirección en ProductViewModel ---
+                            val selectedAddress = viewModel.getSelectedAddress()
+                            if (selectedAddress != null) {
+                                productViewModel.setShippingAddress(selectedAddress)
+                                navController.navigate("payment_method_screen")
+                            }
                         }
                     },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp)
-                        .height(50.dp),
+                    modifier = Modifier.fillMaxWidth().padding(16.dp).height(50.dp),
                     enabled = state.selectedAddressId != null,
-                    shape = RoundedCornerShape(8.dp)
+                    shape = androidx.compose.foundation.shape.RoundedCornerShape(8.dp)
                 ) {
                     Text("Continuar al Pago", fontSize = 16.sp)
                 }
             }
         }
     ) { paddingValues ->
+        // ... (El resto del UI se mantiene idéntico al anterior) ...
+        // Simplemente copiamos el contenido del Box para completitud del archivo
         Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
+            modifier = Modifier.fillMaxSize().padding(paddingValues)
         ) {
             if (state.isLoading) {
                 CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
             } else if (state.addresses.isEmpty()) {
-                // CASO 1: No hay direcciones
                 NoAddressesView(onAddClick = { navController.navigate("add_address_screen") })
             } else {
-                // CASO 2: Lista seleccionable
                 LazyColumn(
                     contentPadding = PaddingValues(16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
@@ -110,102 +110,39 @@ fun SelectAddressScreen(
         }
     }
 }
-
+// ... (Funciones SelectableAddressItem y NoAddressesView se mantienen igual) ...
 @Composable
-fun SelectableAddressItem(
-    address: Address,
-    isSelected: Boolean,
-    onSelect: () -> Unit
-) {
+fun SelectableAddressItem(address: Address, isSelected: Boolean, onSelect: () -> Unit) {
     val borderColor = if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent
     val backgroundColor = if (isSelected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.2f) else MaterialTheme.colorScheme.surface
     val borderStroke = if (isSelected) BorderStroke(2.dp, MaterialTheme.colorScheme.primary) else null
-
     Card(
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
         colors = CardDefaults.cardColors(containerColor = backgroundColor),
         border = borderStroke,
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { onSelect() }
+        modifier = Modifier.fillMaxWidth().clickable { onSelect() }
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                Icons.Default.LocationOn,
-                contentDescription = null,
-                tint = if (isSelected) MaterialTheme.colorScheme.primary else Color.Gray,
-                modifier = Modifier.size(28.dp)
-            )
-
+        Row(modifier = Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+            Icon(Icons.Default.LocationOn, contentDescription = null, tint = if (isSelected) MaterialTheme.colorScheme.primary else Color.Gray, modifier = Modifier.size(28.dp))
             Spacer(modifier = Modifier.width(16.dp))
-
             Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = address.alias,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
-                )
+                Text(text = address.alias, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface)
                 Text(text = address.street, style = MaterialTheme.typography.bodyMedium)
-                Text(
-                    text = "${address.city} - ${address.zipCode}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = Color.Gray
-                )
+                Text(text = "${address.city} - ${address.zipCode}", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
             }
-
             Spacer(modifier = Modifier.width(8.dp))
-
-            // Indicador visual de selección (Radio Button simulado)
-            Icon(
-                imageVector = if (isSelected) Icons.Default.CheckCircle else Icons.Default.RadioButtonUnchecked,
-                contentDescription = if (isSelected) "Seleccionado" else "No seleccionado",
-                tint = if (isSelected) MaterialTheme.colorScheme.primary else Color.LightGray,
-                modifier = Modifier.size(24.dp)
-            )
+            Icon(imageVector = if (isSelected) Icons.Default.CheckCircle else Icons.Default.RadioButtonUnchecked, contentDescription = null, tint = if (isSelected) MaterialTheme.colorScheme.primary else Color.LightGray, modifier = Modifier.size(24.dp))
         }
     }
 }
-
 @Composable
 fun NoAddressesView(onAddClick: () -> Unit) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(24.dp),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Icon(
-            Icons.Default.LocationOn,
-            contentDescription = null,
-            modifier = Modifier.size(100.dp),
-            tint = Color.LightGray
-        )
+    Column(modifier = Modifier.fillMaxSize().padding(24.dp), verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
+        Icon(Icons.Default.LocationOn, contentDescription = null, modifier = Modifier.size(100.dp), tint = Color.LightGray)
         Spacer(modifier = Modifier.height(16.dp))
-        Text(
-            "No tienes direcciones guardadas",
-            style = MaterialTheme.typography.headlineSmall,
-            fontWeight = FontWeight.Bold
-        )
-        Text(
-            "Agrega una dirección para continuar con tu compra.",
-            color = Color.Gray,
-            modifier = Modifier.padding(top = 8.dp, bottom = 24.dp),
-            textAlign = androidx.compose.ui.text.style.TextAlign.Center
-        )
-
-        Button(
-            onClick = onAddClick,
-            modifier = Modifier.fillMaxWidth().height(50.dp)
-        ) {
+        Text("No tienes direcciones guardadas", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+        Button(onClick = onAddClick, modifier = Modifier.fillMaxWidth().height(50.dp).padding(top=24.dp)) {
             Icon(Icons.Default.Add, contentDescription = null)
-            Spacer(modifier = Modifier.width(8.dp))
             Text("Agregar Nueva Dirección")
         }
     }

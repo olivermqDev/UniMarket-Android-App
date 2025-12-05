@@ -3,6 +3,7 @@ package com.atom.unimarket.presentation.products
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.atom.unimarket.presentation.data.Address
 import com.atom.unimarket.presentation.data.Order
 import com.atom.unimarket.presentation.data.Product
 import com.atom.unimarket.presentation.data.toOrderItem
@@ -61,9 +62,15 @@ class ProductViewModel(
     private val _cartState = MutableStateFlow(CartState())
     val cartState = _cartState.asStateFlow()
 
+    private var currentShippingAddress: Address? = null //---NUEVO : Necesario para tener la direccion
+
     init {
         listenForProductUpdates()
         listenForFavoriteChanges()
+    }
+
+    fun setShippingAddress(address: Address) {
+        currentShippingAddress = address
     }
 
     private fun listenForFavoriteChanges() {
@@ -364,24 +371,37 @@ class ProductViewModel(
             }
         }
     }
-    fun checkout(paymentMethod: String) { // <-- AHORA RECIBE EL MÉTODO DE PAGO
+    fun checkout(paymentMethod: String) {
         val userId = getCurrentUserId() ?: return
+        val currentUser = auth.currentUser
         val currentState = _cartState.value
 
         if (currentState.cartProducts.isEmpty()) return
+
+        // Validación básica de dirección
+        if (currentShippingAddress == null) {
+            _cartState.update { it.copy(error = "Error: No se ha seleccionado una dirección de envío.") }
+            return
+        }
 
         viewModelScope.launch {
             _cartState.update { it.copy(isLoading = true, error = null) }
             try {
                 val orderItems = currentState.cartProducts.map { it.toOrderItem() }
 
+                // Extraemos los IDs de los vendedores involucrados para consultas rápidas
+                val involvedSellerIds = orderItems.map { it.sellerId }.distinct()
+
                 val newOrderRef = firestore.collection("orders").document()
                 val order = Order(
                     id = newOrderRef.id,
                     buyerId = userId,
+                    buyerName = currentUser?.displayName ?: "Usuario Anónimo", // <-- Nombre comprador
+                    shippingAddress = currentShippingAddress,                  // <-- Dirección
                     items = orderItems,
                     totalAmount = currentState.totalPrice,
-                    paymentMethod = paymentMethod // <-- GUARDAMOS EL MÉTODO
+                    paymentMethod = paymentMethod,
+                    sellerIds = involvedSellerIds                              // <-- Lista de vendedores
                 )
 
                 firestore.runBatch { batch ->
@@ -394,13 +414,11 @@ class ProductViewModel(
                 }.await()
 
                 _cartState.update {
-                    it.copy(
-                        isLoading = false,
-                        cartProducts = emptyList(),
-                        totalPrice = 0.0,
-                        checkoutSuccess = true
-                    )
+                    it.copy(isLoading = false, cartProducts = emptyList(), totalPrice = 0.0, checkoutSuccess = true)
                 }
+                // Limpiar dirección temporal
+                currentShippingAddress = null
+
             } catch (e: Exception) {
                 _cartState.update { it.copy(isLoading = false, error = "Error en el checkout: ${e.message}") }
             }

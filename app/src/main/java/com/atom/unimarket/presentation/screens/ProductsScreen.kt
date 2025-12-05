@@ -33,46 +33,89 @@ fun ProductsScreen(
     modifier: Modifier = Modifier
 ) {
     val productState by productViewModel.productState.collectAsState()
+    // 1. Obtenemos el estado del carrito para el contador
+    val cartState by productViewModel.cartState.collectAsState()
+
+    // 2. Cargamos el carrito al abrir la pantalla para que el número sea real
+    LaunchedEffect(Unit) {
+        productViewModel.getCartContents()
+    }
+
     val categories = listOf("Todas", "Tecnología", "Libros", "Ropa", "Mobiliario", "Deportes", "Otros")
 
     Column(
         modifier = modifier.fillMaxSize()
     ) {
-        // ... (Barra de búsqueda y chips de categorías no cambian)
-        OutlinedTextField(
-            value = productState.searchQuery,
-            onValueChange = { query -> productViewModel.onSearchQueryChange(query) },
+        // --- BARRA DE BÚSQUEDA + BOTÓN CARRITO ---
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp, vertical = 8.dp),
-            // label = { Text("Buscar productos...") }, // Removed label
-            leadingIcon = { Icon(Icons.Default.Search, contentDescription = "Buscar") },
-            singleLine = true,
-            shape = MaterialTheme.shapes.medium, // Apply rounded corners
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedContainerColor = Color.Transparent,
-                unfocusedContainerColor = Color.Transparent,
-                focusedBorderColor = MaterialTheme.colorScheme.primary, // Neon border
-                unfocusedBorderColor = MaterialTheme.colorScheme.primary, // Constant neon border
-                cursorColor = MaterialTheme.colorScheme.primary,
-                // If label is removed, these don't apply directly to the label, but are good for consistency
-                focusedLabelColor = MaterialTheme.colorScheme.primary,
-                unfocusedLabelColor = MaterialTheme.colorScheme.primary,
-                focusedTextColor = MaterialTheme.colorScheme.onBackground,
-                unfocusedTextColor = MaterialTheme.colorScheme.onBackground,
-                focusedLeadingIconColor = MaterialTheme.colorScheme.primary,
-                unfocusedLeadingIconColor = MaterialTheme.colorScheme.primary, // Constant neon icon color
-                focusedTrailingIconColor = MaterialTheme.colorScheme.primary,
-                unfocusedTrailingIconColor = MaterialTheme.colorScheme.primary, // Constant neon icon color
-            ),
-            trailingIcon = {
-                if (productState.searchQuery.isNotEmpty()) {
-                    IconButton(onClick = { productViewModel.onSearchQueryChange("") }) {
-                        Icon(Icons.Default.Clear, contentDescription = "Limpiar búsqueda")
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp) // Espacio entre barra y botón
+        ) {
+            // Barra de Búsqueda (Usa weight(1f) para ocupar el espacio disponible)
+            OutlinedTextField(
+                value = productState.searchQuery,
+                onValueChange = { query -> productViewModel.onSearchQueryChange(query) },
+                modifier = Modifier
+                    .weight(1f),
+                leadingIcon = { Icon(Icons.Default.Search, contentDescription = "Buscar") },
+                singleLine = true,
+                shape = MaterialTheme.shapes.medium,
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedContainerColor = Color.Transparent,
+                    unfocusedContainerColor = Color.Transparent,
+                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                    unfocusedBorderColor = MaterialTheme.colorScheme.primary,
+                    cursorColor = MaterialTheme.colorScheme.primary,
+                    focusedLeadingIconColor = MaterialTheme.colorScheme.primary,
+                    unfocusedLeadingIconColor = MaterialTheme.colorScheme.primary,
+                    focusedTrailingIconColor = MaterialTheme.colorScheme.primary,
+                    unfocusedTrailingIconColor = MaterialTheme.colorScheme.primary,
+                ),
+                trailingIcon = {
+                    if (productState.searchQuery.isNotEmpty()) {
+                        IconButton(onClick = { productViewModel.onSearchQueryChange("") }) {
+                            Icon(Icons.Default.Clear, contentDescription = "Limpiar búsqueda")
+                        }
                     }
                 }
+            )
+
+            // Botón del Carrito con Contador (Badge)
+            BadgedBox(
+                badge = {
+                    if (cartState.cartProducts.isNotEmpty()) {
+                        Badge(
+                            containerColor = MaterialTheme.colorScheme.primary, // Color neón para el badge
+                            contentColor = MaterialTheme.colorScheme.onPrimary
+                        ) {
+                            Text(
+                                text = cartState.cartProducts.size.toString(),
+                                style = MaterialTheme.typography.labelSmall
+                            )
+                        }
+                    }
+                }
+            ) {
+                IconButton(
+                    onClick = { navController.navigate("cart_screen") },
+                    colors = IconButtonDefaults.iconButtonColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                        contentColor = MaterialTheme.colorScheme.primary
+                    ),
+                    modifier = Modifier.size(48.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.ShoppingCart,
+                        contentDescription = "Ver Carrito"
+                    )
+                }
             }
-        )
+        }
+
+        // --- FILTROS DE CATEGORÍAS ---
         LazyRow(
             modifier = Modifier.fillMaxWidth(),
             contentPadding = PaddingValues(start = 16.dp, bottom = 16.dp),
@@ -86,18 +129,18 @@ fun ProductsScreen(
                         val newCategory = if (category == "Todas") null else category
                         productViewModel.onCategorySelected(newCategory)
                     },
-                    shape = MaterialTheme.shapes.small, // Apply rounded corners
+                    shape = MaterialTheme.shapes.small,
                     colors = FilterChipDefaults.filterChipColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant, // Fondo de tarjeta morado oscuro
-                        selectedContainerColor = MaterialTheme.colorScheme.secondary, // Fondo Neón vibrante
-                        labelColor = MaterialTheme.colorScheme.onSurface, // Texto blanco/claro
-                        selectedLabelColor = MaterialTheme.colorScheme.onSecondary, // Texto blanco/claro sobre Neón
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                        selectedContainerColor = MaterialTheme.colorScheme.secondary,
+                        labelColor = MaterialTheme.colorScheme.onSurface,
+                        selectedLabelColor = MaterialTheme.colorScheme.onSecondary,
                     ),
                     border = FilterChipDefaults.filterChipBorder(
                         enabled = true,
                         selected = isSelected,
-                        borderColor = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.5f), // Borde apagado
-                        selectedBorderColor = MaterialTheme.colorScheme.secondary, // Borde Neón encendido
+                        borderColor = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.5f),
+                        selectedBorderColor = MaterialTheme.colorScheme.secondary,
                         borderWidth = 1.dp
                     ),
                     label = { Text(category) }
@@ -105,10 +148,9 @@ fun ProductsScreen(
             }
         }
 
+        // --- LISTA DE PRODUCTOS ---
         Box(
-            modifier = Modifier
-                .fillMaxSize(),
-             //   .padding(top = 8.dp),
+            modifier = Modifier.fillMaxSize(),
             contentAlignment = Alignment.Center
         ) {
             if (productState.isLoading && productState.products.isEmpty()) {
@@ -131,12 +173,9 @@ fun ProductsScreen(
                     horizontalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     items(productState.products, key = { it.id }) { product ->
-                        // --- INICIO DE CAMBIOS ---
                         ProductCard(
                             product = product,
-                            // 1. Leemos el estado de favorito desde el ViewModel
                             isFavorite = productState.favoriteProductIds.contains(product.id),
-                            // 2. Llamamos a la función del ViewModel al hacer clic
                             onFavoriteClick = {
                                 productViewModel.toggleFavorite(product.id)
                             },
@@ -144,7 +183,6 @@ fun ProductsScreen(
                                 navController.navigate("${AppScreen.ProductDetail.route}/${product.id}")
                             }
                         )
-                        // --- FIN DE CAMBIOS ---
                     }
                 }
             }
@@ -162,17 +200,17 @@ fun ProductCard(
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = MaterialTheme.shapes.medium, // Apply rounded corners
-        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp), // Increase elevation for glow effect
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant), // Use surfaceVariant for card background
+        shape = MaterialTheme.shapes.medium,
+        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
         onClick = onClick
     ) {
         Box {
             Column {
                 SubcomposeAsyncImage(
                     model = product.imageUrls.firstOrNull(),
-                    loading = { CircularProgressIndicator(color = MaterialTheme.colorScheme.primary) }, // Use primary color for loading indicator
-                    error = { Icon(Icons.Default.BrokenImage, "Error", tint = MaterialTheme.colorScheme.error) }, // Use error color for error icon
+                    loading = { CircularProgressIndicator(color = MaterialTheme.colorScheme.primary) },
+                    error = { Icon(Icons.Default.BrokenImage, "Error", tint = MaterialTheme.colorScheme.error) },
                     contentDescription = product.name,
                     modifier = Modifier
                         .height(120.dp)
@@ -180,11 +218,11 @@ fun ProductCard(
                     contentScale = ContentScale.Crop
                 )
                 Column(modifier = Modifier.padding(12.dp)) {
-                    Text(text = product.name, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant) // Ensure text is visible on surfaceVariant
+                    Text(text = product.name, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Text(
                         text = "S/ ${"%.2f".format(product.price)}",
                         style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.primary // Neon color for price
+                        color = MaterialTheme.colorScheme.primary
                     )
                 }
             }
@@ -199,7 +237,7 @@ fun ProductCard(
                 Icon(
                     imageVector = if (isFavorite) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
                     contentDescription = "Marcar como favorito",
-                    tint = if (isFavorite) MaterialTheme.colorScheme.tertiary else Color.LightGray // Neon color for favorite icon
+                    tint = if (isFavorite) MaterialTheme.colorScheme.tertiary else Color.LightGray
                 )
             }
         }

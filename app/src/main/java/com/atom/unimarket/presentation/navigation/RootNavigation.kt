@@ -29,6 +29,7 @@ import com.atom.unimarket.screens.MyAddressScreen
 import com.atom.unimarket.screens.AddAddressScreen
 import com.atom.unimarket.screens.CardPaymentScreen
 import com.atom.unimarket.screens.PaymentMethodScreen
+import com.atom.unimarket.screens.SalesHistoryScreen
 import com.atom.unimarket.screens.SavedCardsScreen
 import com.atom.unimarket.screens.SelectAddressScreen
 import com.atom.unimarket.screens.YapePaymentScreen
@@ -166,7 +167,7 @@ fun RootNavigation() {
             )
         }
 
-        
+
         // ---NUEVO : Añadida rutas de Metodo de pago
         // Pantalla de Seleccionar Metodo de pago
         composable("payment_method_screen") {
@@ -185,6 +186,10 @@ fun RootNavigation() {
         // Pantalla de Seleccionar Tarjeta
         composable("saved_cards_screen") {
             SavedCardsScreen(navController = mainNavController)
+        }
+        //--- NUEVO: Añadido Pantalla de Historial de Ventas
+        composable("sales_history_screen") {
+            SalesHistoryScreen(navController = mainNavController)
         }
 
     }
