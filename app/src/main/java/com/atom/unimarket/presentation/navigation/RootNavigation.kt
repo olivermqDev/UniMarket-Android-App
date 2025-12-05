@@ -26,7 +26,6 @@ import com.atom.unimarket.screens.MyAddressScreen
 import com.atom.unimarket.screens.AddAddressScreen
 import com.atom.unimarket.presentation.screens.PaymentMethodScreen
 import com.atom.unimarket.screens.SalesHistoryScreen
-import com.atom.unimarket.screens.SavedCardsScreen
 import com.atom.unimarket.screens.SelectAddressScreen
 import com.atom.unimarket.presentation.checkout.CheckoutViewModel
 import com.atom.unimarket.presentation.checkout.CheckoutScreen
