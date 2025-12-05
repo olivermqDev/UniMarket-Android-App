@@ -66,4 +66,17 @@ class CheckoutRepository(
             }
         }.await()
     }
+
+    suspend fun createOrderForSeller(order: Order) {
+        val orderRef = firestore.collection("pedidos").document(order.id)
+        firestore.runBatch { batch ->
+            batch.set(orderRef, order)
+            // Remove items from cart for this specific seller
+            order.items.forEach { item ->
+                val cartItemRef = firestore.collection("users").document(order.buyerId)
+                    .collection("cart").document(item.productId)
+                batch.delete(cartItemRef)
+            }
+        }.await()
+    }
 }

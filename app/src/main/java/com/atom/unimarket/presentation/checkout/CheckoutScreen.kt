@@ -1,38 +1,31 @@
-package com.atom.unimarket.presentation.screens
+package com.atom.unimarket.presentation.checkout
 
 import android.widget.Toast
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ContentCopy
-import androidx.compose.material.icons.filled.Smartphone
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalClipboardManager
-
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
-import com.atom.unimarket.presentation.checkout.CheckoutViewModel
-import com.atom.unimarket.presentation.checkout.OrderGroup
 import org.koin.androidx.compose.koinViewModel
 import java.text.NumberFormat
 import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PaymentMethodScreen(
+fun CheckoutScreen(
     navController: NavController,
     viewModel: CheckoutViewModel = koinViewModel()
 ) {
@@ -50,9 +43,8 @@ fun PaymentMethodScreen(
 
     LaunchedEffect(state.paymentSuccess) {
         if (state.paymentSuccess) {
-            Toast.makeText(context, "¡Pedido realizado! Pendiente de verificación.", Toast.LENGTH_LONG).show()
+            Toast.makeText(context, "¡Pago reportado! Pendiente de verificación.", Toast.LENGTH_LONG).show()
             viewModel.resetPaymentSuccess()
-            // Si no quedan grupos, volver al inicio o carrito
             if (state.orderGroups.isEmpty()) {
                 navController.navigate("main_screen") { popUpTo("main_screen") { inclusive = true } }
             }
@@ -88,27 +80,20 @@ fun PaymentMethodScreen(
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 items(state.orderGroups) { group ->
-                    val inputState = state.paymentInputs[group.sellerId] ?: com.atom.unimarket.presentation.checkout.PaymentInputState()
-                    SellerOrderCard(
+                    val inputState = state.paymentInputs[group.sellerId] ?: PaymentInputState()
+                    SellerPaymentSection(
                         group = group,
                         inputState = inputState,
                         currencyFormat = currencyFormat,
-                        clipboardManager = clipboardManager,
-                        context = context,
                         onYapeCodeChange = { code ->
                             viewModel.onYapeCodeChange(group.sellerId, code)
                         },
-                        onPayClick = {
-                            // 1. Copiar número
-
-                            clipboardManager.setText(AnnotatedString(group.sellerPhone))
-                            Toast.makeText(context, "Número ${group.sellerPhone} copiado", Toast.LENGTH_SHORT).show()
-
-                            // 2. Abrir Yape
-                            viewModel.payToSeller(context, group.sellerPhone)
-                        },
-                        onConfirmClick = {
+                        onReportPayment = {
                             viewModel.reportarPagoVendedor(group.sellerId)
+                        },
+                        onCopyText = { text, label ->
+                            clipboardManager.setText(AnnotatedString(text))
+                            Toast.makeText(context, "$label copiado", Toast.LENGTH_SHORT).show()
                         }
                     )
                 }
@@ -118,15 +103,13 @@ fun PaymentMethodScreen(
 }
 
 @Composable
-fun SellerOrderCard(
+fun SellerPaymentSection(
     group: OrderGroup,
-    inputState: com.atom.unimarket.presentation.checkout.PaymentInputState,
+    inputState: PaymentInputState,
     currencyFormat: NumberFormat,
-    clipboardManager: androidx.compose.ui.platform.ClipboardManager,
-    context: android.content.Context,
     onYapeCodeChange: (String) -> Unit,
-    onPayClick: () -> Unit,
-    onConfirmClick: () -> Unit
+    onReportPayment: () -> Unit,
+    onCopyText: (String, String) -> Unit
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -134,6 +117,7 @@ fun SellerOrderCard(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
+            // Header: Seller Info
             Text(
                 text = "Vendedor: ${group.sellerName}",
                 style = MaterialTheme.typography.titleMedium,
@@ -141,55 +125,60 @@ fun SellerOrderCard(
                 color = MaterialTheme.colorScheme.primary
             )
             Spacer(modifier = Modifier.height(8.dp))
-            
-            // Lista de items
+
+            // Products List (Simplified)
             group.items.forEach { item ->
                 Row(
-                    modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Text("${item.quantity}x ${item.name}", modifier = Modifier.weight(1f))
-                    Text(currencyFormat.format(item.price * item.quantity), fontWeight = FontWeight.Bold)
+                    Text("${item.quantity}x ${item.name}", style = MaterialTheme.typography.bodyMedium)
+                    Text(
+                        currencyFormat.format(item.price * item.quantity),
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.SemiBold
+                    )
                 }
             }
             
-            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-            
+            HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
+
+            // Payment Details Section
+            Text("Detalles de Pago (Yape)", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyLarge)
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Yape Number Row
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Text("Total a Pagar:", fontWeight = FontWeight.Bold)
-                Text(
-                    text = currencyFormat.format(group.subtotal),
-                    style = MaterialTheme.typography.titleLarge,
-                    color = Color(0xFF742284), // Yape color
-                    fontWeight = FontWeight.Bold
-                )
+                Column {
+                    Text("Número Yape", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
+                    Text(group.sellerPhone.ifBlank { "No disponible" }, style = MaterialTheme.typography.bodyLarge)
+                }
+                IconButton(onClick = { onCopyText(group.sellerPhone, "Número Yape") }) {
+                    Icon(Icons.Default.ContentCopy, contentDescription = "Copiar Número")
+                }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Yape Number with Copy Button
+            // Total Amount Row
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text("Número Yape:", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
+                Column {
+                    Text("Monto Total", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
                     Text(
-                        text = group.sellerPhone.ifBlank { "No disponible" },
-                        style = MaterialTheme.typography.bodyLarge,
+                        currencyFormat.format(group.subtotal),
+                        style = MaterialTheme.typography.titleMedium,
+                        color = Color(0xFF742284), // Yape Color
                         fontWeight = FontWeight.Bold
                     )
                 }
-                IconButton(onClick = {
-                    clipboardManager.setText(AnnotatedString(group.sellerPhone))
-                    Toast.makeText(context, "Número copiado", Toast.LENGTH_SHORT).show()
-                }) {
-                    Icon(Icons.Default.ContentCopy, contentDescription = "Copiar número")
+                IconButton(onClick = { onCopyText(group.subtotal.toString(), "Monto Total") }) {
+                    Icon(Icons.Default.ContentCopy, contentDescription = "Copiar Monto")
                 }
             }
 
@@ -197,13 +186,21 @@ fun SellerOrderCard(
 
             // Yape Payment Button
             Button(
-                onClick = onPayClick,
+                onClick = { 
+                    onCopyText(group.sellerPhone, "Número Yape")
+                },
                 modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF742284))
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color(0xFF742284) // Yape purple color
+                )
             ) {
-                Icon(Icons.Default.Smartphone, contentDescription = null, modifier = Modifier.size(18.dp))
+                Icon(
+                    imageVector = Icons.Default.ContentCopy,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp)
+                )
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("COPIAR Y PAGAR CON YAPE")
+                Text("COPIAR NÚMERO Y PAGAR CON YAPE", fontSize = 14.sp)
             }
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -218,7 +215,7 @@ fun SellerOrderCard(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Payment Code TextField
+            // Input Section
             OutlinedTextField(
                 value = inputState.yapeCode,
                 onValueChange = onYapeCodeChange,
@@ -230,13 +227,13 @@ fun SellerOrderCard(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Confirm Payment Button
+            // Action Button
             Button(
-                onClick = onConfirmClick,
+                onClick = onReportPayment,
                 modifier = Modifier.fillMaxWidth(),
                 enabled = inputState.yapeCode.isNotBlank(),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFF00CFA3),
+                    containerColor = Color(0xFF00CFA3), // Success/Action Color
                     disabledContainerColor = Color.Gray
                 )
             ) {

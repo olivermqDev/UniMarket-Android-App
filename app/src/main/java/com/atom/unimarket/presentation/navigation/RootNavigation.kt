@@ -28,6 +28,8 @@ import com.atom.unimarket.presentation.screens.PaymentMethodScreen
 import com.atom.unimarket.screens.SalesHistoryScreen
 import com.atom.unimarket.screens.SavedCardsScreen
 import com.atom.unimarket.screens.SelectAddressScreen
+import com.atom.unimarket.presentation.checkout.CheckoutViewModel
+import com.atom.unimarket.presentation.checkout.CheckoutScreen
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -38,6 +40,7 @@ fun RootNavigation() {
     val chatbotViewModel: ChatbotViewModel = koinViewModel()
     val dashboardViewModel : DashboardViewModel = koinViewModel()
     val addressViewModel : AddressViewModel = koinViewModel()
+    val checkoutViewModel: CheckoutViewModel = koinViewModel()
 
     NavHost(
         navController = mainNavController,
@@ -144,24 +147,30 @@ fun RootNavigation() {
         composable("select_address_screen") {
             SelectAddressScreen(
                 navController = mainNavController,
-                viewModel = addressViewModel
+                viewModel = addressViewModel,
+                productViewModel = productViewModel
             )
         }
-
-        composable("payment_method_screen") {
-            PaymentMethodScreen(navController = mainNavController)
-        }
-
-        composable("saved_cards_screen") {
-            SavedCardsScreen(navController = mainNavController)
-        }
-
         composable("sales_history_screen") {
             SalesHistoryScreen(navController = mainNavController)
         }
         
         composable("order_history_screen") {
             OrderHistoryScreen(navController = mainNavController)
+        }
+
+        composable(route = "checkout_screen") {
+            CheckoutScreen(
+                navController = mainNavController,
+                viewModel = checkoutViewModel
+            )
+        }
+
+        composable(route = "payment_method_screen") {
+            PaymentMethodScreen(
+                navController = mainNavController,
+                viewModel = checkoutViewModel
+            )
         }
 
         composable(route = AppScreen.EditProfile.route) {

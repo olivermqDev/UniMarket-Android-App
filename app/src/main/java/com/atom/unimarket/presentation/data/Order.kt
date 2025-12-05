@@ -29,6 +29,11 @@ data class Order(
     val paymentMethod: String = "UNKNOWN",
     val sellerId: String = "", // <-- NUEVO: ID del vendedor único para esta orden
     val sellerIds: List<String> = emptyList(), // <-- MANTENER: Por compatibilidad
+    val yapeCode: String = "",
+    val paymentProofUrl: String = "",
+    val deliveryType: String = "", // "PICKUP" or "DELIVERY"
+    val deliveryAddress: String = "",
+    val pickupPoint: String = "",
     @ServerTimestamp
     val createdAt: Date? = null
 )

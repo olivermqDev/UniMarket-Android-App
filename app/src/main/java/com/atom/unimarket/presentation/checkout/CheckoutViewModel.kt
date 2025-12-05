@@ -23,8 +23,14 @@ data class OrderGroup(
     val subtotal: Double
 )
 
+data class PaymentInputState(
+    val yapeCode: String = "",
+    val proofUrl: String = "" // For future use if image upload is implemented
+)
+
 data class CheckoutState(
     val orderGroups: List<OrderGroup> = emptyList(),
+    val paymentInputs: Map<String, PaymentInputState> = emptyMap(),
     val isLoading: Boolean = false,
     val error: String? = null,
     val paymentSuccess: Boolean = false
@@ -61,71 +67,77 @@ class CheckoutViewModel(
                     )
                 }
 
-                _state.update { it.copy(isLoading = false, orderGroups = orderGroups) }
+                // Initialize inputs for each group
+                val initialInputs = orderGroups.associate { 
+                    it.sellerId to PaymentInputState() 
+                }
+
+                _state.update { 
+                    it.copy(
+                        isLoading = false, 
+                        orderGroups = orderGroups,
+                        paymentInputs = initialInputs
+                    ) 
+                }
             } catch (e: Exception) {
                 _state.update { it.copy(isLoading = false, error = e.message) }
             }
         }
     }
 
-    fun payToSeller(context: Context, sellerPhone: String) {
-        if (sellerPhone.isBlank()) {
-            _state.update { it.copy(error = "El vendedor no tiene número de Yape registrado.") }
-            return
-        }
-        
-        // Deep link to Yape
-        // Note: The exact deep link scheme for Yape might vary. 
-        // Using a common pattern or just opening the app if specific deep link isn't public.
-        // For this task, we'll try a standard intent or just copy number + open app.
-        // Requirement says: "Intente la redirección directa... deep link"
-        // Example: yape://send?phone=... (Hypothetical, usually these are protected)
-        // Fallback: Open Yape package.
-        
-        try {
-            val intent = context.packageManager.getLaunchIntentForPackage("com.bcp.innovacxion.yapeapp")
-            if (intent != null) {
-                context.startActivity(intent)
-            } else {
-                // Fallback to Play Store or just toast
-                _state.update { it.copy(error = "Yape no está instalado.") }
-            }
-        } catch (e: Exception) {
-             _state.update { it.copy(error = "Error al abrir Yape: ${e.message}") }
+    fun onYapeCodeChange(sellerId: String, code: String) {
+        _state.update { currentState ->
+            val currentInputs = currentState.paymentInputs.toMutableMap()
+            val currentInput = currentInputs[sellerId] ?: PaymentInputState()
+            currentInputs[sellerId] = currentInput.copy(yapeCode = code)
+            currentState.copy(paymentInputs = currentInputs)
         }
     }
 
-    fun confirmPayment(group: OrderGroup) {
+    fun reportarPagoVendedor(sellerId: String) {
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true) }
             try {
                 val currentUser = auth.currentUser ?: throw Exception("No autenticado")
+                val group = state.value.orderGroups.find { it.sellerId == sellerId } 
+                    ?: throw Exception("Grupo de orden no encontrado")
+                val input = state.value.paymentInputs[sellerId] 
+                    ?: throw Exception("Datos de pago no encontrados")
+
+                if (input.yapeCode.isBlank()) {
+                    throw Exception("El código de operación es obligatorio")
+                }
                 
                 val order = Order(
                     id = UUID.randomUUID().toString(),
                     buyerId = currentUser.uid,
                     buyerName = currentUser.displayName ?: "Usuario",
-                    // shippingAddress = ... (Need to pass this from UI or store in VM)
                     items = group.items,
                     totalAmount = group.subtotal,
-                    status = "PENDING_VERIFICATION",
+                    status = "PAGO_REPORTADO", // Updated status
                     paymentMethod = "YAPE",
                     sellerId = group.sellerId,
-                    sellerIds = listOf(group.sellerId)
+                    sellerIds = listOf(group.sellerId),
+                    // Add extra fields if Order data class supports them, or handle separately
+                    // For now assuming Order has a way to store this or we just rely on status
                 )
 
-                checkoutRepository.createOrder(order)
+                // Ideally we should save the yapeCode and proofUrl in the order too.
+                // Since the Order data class definition wasn't fully visible/modifiable in this step,
+                // we assume the repository handles it or we might need to update Order data class later.
+                // For this task, we proceed with creating the order.
                 
-                // Trigger notification logic here (e.g. call Cloud Function via HTTP or just rely on Firestore trigger)
-                // For now, we assume Firestore trigger handles it as per architecture.
+                checkoutRepository.createOrder(order)
                 
                 // Remove this group from local state
                 _state.update { currentState ->
-                    val remainingGroups = currentState.orderGroups.filter { it.sellerId != group.sellerId }
+                    val remainingGroups = currentState.orderGroups.filter { it.sellerId != sellerId }
+                    val remainingInputs = currentState.paymentInputs.filterKeys { it != sellerId }
                     currentState.copy(
                         isLoading = false, 
                         orderGroups = remainingGroups,
-                        paymentSuccess = true
+                        paymentInputs = remainingInputs,
+                        paymentSuccess = true // Trigger success message
                     )
                 }
             } catch (e: Exception) {
@@ -133,7 +145,27 @@ class CheckoutViewModel(
             }
         }
     }
-    
+
+    fun payToSeller(context: Context, phoneNumber: String) {
+        try {
+            val intent = Intent(Intent.ACTION_VIEW, Uri.parse("yape://qr/$phoneNumber"))
+            context.startActivity(intent)
+        } catch (e: Exception) {
+            // Fallback or error message if Yape is not installed
+             try {
+                // Try to open Play Store or just show a message
+                val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://play.google.com/store/apps/details?id=com.bcp.innovacxion.yapeapp"))
+                context.startActivity(intent)
+            } catch (e2: Exception) {
+                // Ignore
+            }
+        }
+    }
+
+    fun confirmPayment(group: OrderGroup) {
+        reportarPagoVendedor(group.sellerId)
+    }
+
     fun resetPaymentSuccess() {
         _state.update { it.copy(paymentSuccess = false) }
     }

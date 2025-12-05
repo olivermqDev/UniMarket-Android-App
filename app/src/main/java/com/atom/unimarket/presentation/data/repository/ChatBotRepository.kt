@@ -4,6 +4,11 @@ import com.google.ai.client.generativeai.GenerativeModel
 import com.google.firebase.firestore.FirebaseFirestore
 import com.atom.unimarket.presentation.data.Product
 import kotlinx.coroutines.tasks.await
+import com.atom.unimarket.BuildConfig
+
+
+
+
 
 class ChatbotRepository {
 
@@ -11,8 +16,8 @@ class ChatbotRepository {
 
     // Configurar el modelo generativo con la API Key
     private val generativeModel = GenerativeModel(
-        modelName = "gemini-2.0-flash-lite", // un modelo válido
-        apiKey = "AIzaSyDqaQvdHElXCLZG-LTOCl0Ntk0E67WJ_yU"
+        modelName = "gemini-2.0-flash", // un modelo válido
+        apiKey = BuildConfig.GEMINI_API_KEY
     )
 
     // Obtener respuesta del chatbot
