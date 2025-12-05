@@ -1,6 +1,7 @@
 package com.atom.unimarket.presentation.screens
 
 import android.widget.Toast
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -9,15 +10,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
-// --- INICIO DE CAMBIOS ---
-// import androidx.lifecycle.viewmodel.compose.viewModel // <-- 1. ESTE SE VA
-import org.koin.androidx.compose.koinViewModel // <-- 2. AÑADIMOS ESTE
-// --- FIN DE CAMBIOS ---
+import org.koin.androidx.compose.koinViewModel
 import androidx.navigation.NavController
 import com.atom.unimarket.presentation.auth.AuthViewModel
 import com.atom.unimarket.presentation.navigation.AppScreen
+import com.atom.unimarket.R
 
 @Composable
 fun LoginScreen(
@@ -38,6 +38,11 @@ fun LoginScreen(
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
+        Image(
+            painter = painterResource(R.drawable.logo_proyecto),
+            contentDescription = null
+        )
+        Spacer(modifier = Modifier.height(48.dp))
         Text("UniMarket", style = MaterialTheme.typography.headlineLarge)
         Spacer(modifier = Modifier.height(48.dp))
 

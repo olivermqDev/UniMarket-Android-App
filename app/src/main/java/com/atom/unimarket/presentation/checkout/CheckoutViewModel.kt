@@ -38,7 +38,8 @@ data class CheckoutState(
 
 class CheckoutViewModel(
     private val checkoutRepository: CheckoutRepository,
-    private val auth: FirebaseAuth
+    private val auth: FirebaseAuth,
+    private val productViewModel: com.atom.unimarket.presentation.products.ProductViewModel
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(CheckoutState())
@@ -108,18 +109,22 @@ class CheckoutViewModel(
                     throw Exception("El código de operación es obligatorio")
                 }
                 
+                // Get shipping address from ProductViewModel
+                val shippingAddress = productViewModel.getShippingAddress()
+                
                 val order = Order(
                     id = UUID.randomUUID().toString(),
                     buyerId = currentUser.uid,
                     buyerName = currentUser.displayName ?: "Usuario",
+                    shippingAddress = shippingAddress,
                     items = group.items,
                     totalAmount = group.subtotal,
-                    status = "PAGO_REPORTADO", // Updated status
+                    status = "PAGO_REPORTADO",
                     paymentMethod = "YAPE",
                     sellerId = group.sellerId,
                     sellerIds = listOf(group.sellerId),
-                    // Add extra fields if Order data class supports them, or handle separately
-                    // For now assuming Order has a way to store this or we just rely on status
+                    yapeCode = input.yapeCode,
+                    deliveryType = "DELIVERY" // Default, should be configurable
                 )
 
                 // Ideally we should save the yapeCode and proofUrl in the order too.

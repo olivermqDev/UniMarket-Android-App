@@ -16,9 +16,13 @@ class CheckoutRepository(
     suspend fun getCartItems(): List<CartItem> {
         val userId = auth.currentUser?.uid ?: return emptyList()
         val cartSnapshot = firestore.collection("users").document(userId).collection("cart").get().await()
-        val productIds = cartSnapshot.documents.map { it.id }
+        
+        // Get product IDs and their quantities from cart
+        val cartData = cartSnapshot.documents.associate { doc ->
+            doc.id to (doc.getLong("quantity")?.toInt() ?: 1)
+        }
 
-        if (productIds.isEmpty()) return emptyList()
+        if (cartData.isEmpty()) return emptyList()
 
         // Firestore 'in' query supports up to 10 items normally. 
         // For robustness, we might need to chunk this if the cart is huge, but for now assuming < 10.
@@ -26,7 +30,7 @@ class CheckoutRepository(
         // Let's stick to 'in' for now as it's efficient for small carts.
         
         val productsList = firestore.collection("products")
-            .whereIn("id", productIds)
+            .whereIn("id", cartData.keys.toList())
             .get()
             .await()
             .toObjects(Product::class.java)
@@ -38,7 +42,7 @@ class CheckoutRepository(
                 name = product.name,
                 price = product.price,
                 imageUrl = product.imageUrls.firstOrNull() ?: "",
-                quantity = 1, // Assuming quantity is always 1 for now as per previous logic
+                quantity = cartData[product.id] ?: 1, // Get actual quantity from cart
                 sellerId = product.sellerUid
             )
         }

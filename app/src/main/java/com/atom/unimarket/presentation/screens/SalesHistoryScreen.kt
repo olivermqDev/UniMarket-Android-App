@@ -1,4 +1,4 @@
-package com.atom.unimarket.screens
+﻿package com.atom.unimarket.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -137,9 +137,9 @@ fun SaleOrderCard(
                 // Chat Button
                 OutlinedButton(
                     onClick = {
-                        // Navigate to chat with buyer
-                        order.buyerId?.let { buyerId ->
-                            navController.navigate("chat/$buyerId")
+                        // Navigate to main screen where user can access chats
+                        navController.navigate("main_screen") {
+                            popUpTo("main_screen") { inclusive = false }
                         }
                     },
                     modifier = Modifier.height(32.dp),
@@ -162,9 +162,6 @@ fun SaleOrderCard(
                 Spacer(modifier = Modifier.width(8.dp))
                 Column {
                     Text(order.buyerName, fontWeight = FontWeight.Bold)
-                    if (!order.buyerPhone.isNullOrBlank()) {
-                        Text("Tel: ${order.buyerPhone}", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
-                    }
                 }
             }
 
