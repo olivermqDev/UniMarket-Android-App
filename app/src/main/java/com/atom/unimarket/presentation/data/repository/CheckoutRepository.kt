@@ -30,7 +30,7 @@ class CheckoutRepository(
         // Let's stick to 'in' for now as it's efficient for small carts.
         
         val productsList = firestore.collection("products")
-            .whereIn("id", cartData.keys.toList())
+            .whereIn(com.google.firebase.firestore.FieldPath.documentId(), cartData.keys.toList())
             .get()
             .await()
             .toObjects(Product::class.java)
