@@ -55,6 +55,6 @@ val appModule = module {
 
     // --- Orders ---
     single<com.atom.unimarket.presentation.data.repository.OrderRepository> { com.atom.unimarket.presentation.data.repository.OrderRepositoryImpl(get()) }
-    viewModel { com.atom.unimarket.presentation.orders.OrderHistoryViewModel(get(), get()) }
+    viewModel { com.atom.unimarket.presentation.orders.OrderHistoryViewModel(get(), get(),get()) }
 
 }
