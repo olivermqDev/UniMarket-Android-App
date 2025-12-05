@@ -2,7 +2,6 @@ package com.atom.unimarket.presentation.di
 
 import com.atom.unimarket.presentation.address.AddressViewModel
 import com.atom.unimarket.presentation.auth.AuthViewModel
-import com.atom.unimarket.presentation.card.CardViewModel
 import com.atom.unimarket.presentation.chat.ChatViewModel
 import com.atom.unimarket.presentation.chatbot.ChatbotViewModel
 import com.atom.unimarket.presentation.dashboard.DashboardViewModel
@@ -37,7 +36,6 @@ val appModule = module {
     viewModel { ChatViewModel(get(), get()) }
     //---NUEVO : Añadido AddressViewModel, CardViewModel y SalesViewModel
     viewModel { AddressViewModel(get(), get()) }
-    viewModel { CardViewModel(get(), get()) }
     viewModel { SalesViewModel(get(), get()) }
 
 
@@ -55,6 +53,6 @@ val appModule = module {
 
     // --- Orders ---
     single<com.atom.unimarket.presentation.data.repository.OrderRepository> { com.atom.unimarket.presentation.data.repository.OrderRepositoryImpl(get()) }
-    viewModel { com.atom.unimarket.presentation.orders.OrderHistoryViewModel(get(), get()) }
+    viewModel { com.atom.unimarket.presentation.orders.OrderHistoryViewModel(get(), get(),get()) }
 
 }

@@ -34,6 +34,7 @@ data class Order(
     val deliveryType: String = "", // "PICKUP" or "DELIVERY"
     val deliveryAddress: String = "",
     val pickupPoint: String = "",
+    val buyerPhone: String =  "",
     @ServerTimestamp
     val createdAt: Date? = null
 )
