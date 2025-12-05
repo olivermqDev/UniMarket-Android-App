@@ -45,7 +45,7 @@ val appModule = module {
 
     // --- Checkout ---
     single { com.atom.unimarket.presentation.data.repository.CheckoutRepository(get(), get()) }
-    viewModel { com.atom.unimarket.presentation.checkout.CheckoutViewModel(get(), get()) }
+    viewModel { com.atom.unimarket.presentation.checkout.CheckoutViewModel(get(), get(), get()) }
 
     // --- Profile ---
     single<com.atom.unimarket.presentation.data.repository.UserRepository> { com.atom.unimarket.presentation.data.repository.UserRepositoryImpl(get()) }

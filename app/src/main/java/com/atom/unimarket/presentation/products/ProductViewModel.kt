@@ -1,4 +1,4 @@
-package com.atom.unimarket.presentation.products
+﻿package com.atom.unimarket.presentation.products
 
 import android.net.Uri
 import androidx.lifecycle.ViewModel
@@ -69,7 +69,7 @@ class ProductViewModel(
 
     fun setShippingAddress(address: Address) {
         currentShippingAddress = address
-    }
+    }  fun getShippingAddress(): Address? { return currentShippingAddress  }
 
     private fun listenForFavoriteChanges() {
         val userId = getCurrentUserId() ?: return
@@ -210,7 +210,7 @@ class ProductViewModel(
                 val productId = firestore.collection("products").document().id
                 val newProduct = Product(
                     id = productId, name = name, description = description, price = price, category = category,
-                    imageUrls = listOf(imageUrl), sellerUid = user.uid, sellerName = user.displayName ?: "Vendedor anónimo", createdAt = null
+                    imageUrls = listOf(imageUrl), sellerUid = user.uid, sellerName = user.displayName ?: "Vendedor anÃ³nimo", createdAt = null
                 )
                 firestore.collection("products").document(productId).set(newProduct).await()
 
@@ -298,7 +298,7 @@ class ProductViewModel(
                 }
                 getCartContents()
             } catch (e: Exception) {
-                _cartState.update { it.copy(error = "Error al añadir al carrito: ${e.message}") }
+                _cartState.update { it.copy(error = "Error al aÃ±adir al carrito: ${e.message}") }
             }
         }
     }
@@ -397,7 +397,7 @@ class ProductViewModel(
         if (currentState.cartProducts.isEmpty()) return
 
         if (currentShippingAddress == null) {
-            _cartState.update { it.copy(error = "Error: No se ha seleccionado una dirección de envío.") }
+            _cartState.update { it.copy(error = "Error: No se ha seleccionado una direcciÃ³n de envÃ­o.") }
             return
         }
 
