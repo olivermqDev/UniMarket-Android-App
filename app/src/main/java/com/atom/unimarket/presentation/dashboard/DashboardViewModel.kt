@@ -185,48 +185,64 @@ class DashboardViewModel : ViewModel() {
         }
     }
 
-    // 3. Ventas vs Promedio (Lo dejamos mensual o lo cambiamos a semanal si prefieres, lo dejo mensual por variedad)
+
+// 3. Ventas vs Promedio
     private suspend fun loadCombinedChartData() {
-        // ... (Misma lógica, podrías actualizarla a orders si quieres precisión total)
-        // Por ahora lo dejaré apuntando a mock si falla, o a la lógica anterior.
-        // Si quieres que funcione real, deberíamos replicar la lógica de loadSalesColumnData
-        // pero agrupando por mes.
         try {
             val snapshot = db.collection("orders")
                 .whereArrayContains("sellerIds", currentUserId!!)
                 .get()
                 .await()
 
-            val monthlySales = mutableMapOf<String, Float>()
+
+
+            val targetMonths = listOf("Ago", "Sep", "Oct", "Nov", "Dic")
+
+            // Inicializamos el mapa en 0 para asegurar que el gráfico muestre todos los meses
+            val monthlySales = targetMonths.associateWith { 0f }.toMutableMap()
+
             val calendar = Calendar.getInstance()
+            val currentYear = calendar.get(Calendar.YEAR)
 
             snapshot.documents.forEach { doc ->
                 val timestamp = doc.getTimestamp("createdAt")
                 if(timestamp != null) {
                     calendar.time = timestamp.toDate()
-                    val items = doc.get("items") as? List<Map<String, Any>> ?: emptyList()
-                    var total = 0f
-                    items.forEach { item ->
-                        if(item["sellerId"] == currentUserId) {
-                            total += (item["price"] as? Number)?.toFloat() ?: 0f
+                    val docYear = calendar.get(Calendar.YEAR)
+                    val docMonth = calendar.get(Calendar.MONTH)
+
+
+                    if (docYear == currentYear && docMonth >= Calendar.AUGUST) {
+
+                        val items = doc.get("items") as? List<Map<String, Any>> ?: emptyList()
+                        var total = 0f
+
+                        items.forEach { item ->
+                            if(item["sellerId"] == currentUserId) {
+                                total += (item["price"] as? Number)?.toFloat() ?: 0f
+                            }
                         }
-                    }
-                    if(total > 0) {
-                        val month = getMonthName(calendar.get(Calendar.MONTH))
-                        monthlySales[month] = monthlySales.getOrDefault(month, 0f) + total
+
+                        if(total > 0) {
+                            val monthName = getMonthName(docMonth)
+
+                            if (monthlySales.containsKey(monthName)) {
+                                monthlySales[monthName] = monthlySales.getValue(monthName) + total
+                            }
+                        }
                     }
                 }
             }
 
-            val months = listOf("Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic")
-            // Filtramos solo meses con datos o mostramos los primeros 6
-            val result = months.take(6).map { m -> m to monthlySales.getOrDefault(m, 0f) }
+
+            val result = targetMonths.map { m -> m to monthlySales.getOrDefault(m, 0f) }
+
             _combinedChartData.postValue(result)
 
         } catch (e: Exception) {
+            e.printStackTrace()
         }
     }
-
     // 4. Estado de Productos (CORREGIDO)
     private suspend fun loadProductStatusData() {
         try {

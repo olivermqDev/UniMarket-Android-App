@@ -3,18 +3,22 @@ package com.atom.unimarket.presentation.checkout
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.widget.Toast
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.atom.unimarket.presentation.data.CartItem
 import com.atom.unimarket.presentation.data.Order
-import com.atom.unimarket.presentation.data.repository.CheckoutRepository
+import com.atom.unimarket.presentation.data.Product
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import java.util.UUID
+import kotlinx.coroutines.tasks.await
 
+
+// --- MODELOS DE ESTADO (UI) ---
 data class OrderGroup(
     val sellerId: String,
     val sellerName: String,
@@ -24,8 +28,7 @@ data class OrderGroup(
 )
 
 data class PaymentInputState(
-    val yapeCode: String = "",
-    val proofUrl: String = "" // For future use if image upload is implemented
+    val yapeCode: String = ""
 )
 
 data class CheckoutState(
@@ -37,7 +40,7 @@ data class CheckoutState(
 )
 
 class CheckoutViewModel(
-    private val checkoutRepository: CheckoutRepository,
+    private val firestore: FirebaseFirestore,
     private val auth: FirebaseAuth,
     private val productViewModel: com.atom.unimarket.presentation.products.ProductViewModel
 ) : ViewModel() {
@@ -50,48 +53,91 @@ class CheckoutViewModel(
     }
 
     fun loadCheckoutData() {
+        val userId = auth.currentUser?.uid ?: return
+        _state.update { it.copy(isLoading = true, error = null) }
+
         viewModelScope.launch {
-            _state.update { it.copy(isLoading = true, error = null) }
             try {
-                val cartItems = checkoutRepository.getCartItems()
-                val groupedItems = cartItems.groupBy { it.sellerId }
-                
-                val orderGroups = groupedItems.map { (sellerId, items) ->
-                    val seller = checkoutRepository.getSellerDetails(sellerId)
-                    val subtotal = items.sumOf { it.price * it.quantity }
-                    OrderGroup(
-                        sellerId = sellerId,
-                        sellerName = seller?.displayName ?: "Vendedor Desconocido",
-                        sellerPhone = seller?.phoneNumber ?: "",
-                        items = items,
-                        subtotal = subtotal
+                // 1. Cargar items del carrito
+                val cartSnapshot = firestore.collection("users").document(userId)
+                    .collection("cart").get().await()
+
+                if (cartSnapshot.isEmpty) {
+                    _state.update { it.copy(isLoading = false, orderGroups = emptyList()) }
+                    return@launch
+                }
+
+                // 2. Cargar detalles de productos
+                val productIds = cartSnapshot.documents.map { it.id }
+                val products = if (productIds.isNotEmpty()) {
+                    firestore.collection("products")
+                        .whereIn("id", productIds)
+                        .get().await()
+                        .toObjects(Product::class.java)
+                } else emptyList()
+
+                val quantities = cartSnapshot.documents.associate {
+                    it.id to (it.getLong("quantity")?.toInt() ?: 1)
+                }
+
+                // 3. Agrupar por Vendedor
+                val itemsBySeller = products.groupBy { it.sellerUid }
+                val groups = mutableListOf<OrderGroup>()
+
+                for ((sellerId, sellerProducts) in itemsBySeller) {
+                    var sellerName = "Vendedor"
+                    var sellerPhone = ""
+
+                    try {
+                        val sellerDoc = firestore.collection("users").document(sellerId).get().await()
+                        sellerName = sellerDoc.getString("displayName") ?: sellerProducts.first().sellerName
+                        sellerPhone = sellerDoc.getString("phoneNumber") ?: ""
+                    } catch (e: Exception) {  }
+
+
+                    val groupItems = sellerProducts.map { product ->
+                        val qty = quantities[product.id] ?: 1
+                        CartItem(
+                            id = product.id,
+                            productId = product.id,
+                            name = product.name,
+                            price = product.price,
+                            imageUrl = product.imageUrls.firstOrNull() ?: "",
+                            quantity = qty,
+                            sellerId = sellerId
+                        )
+                    }
+
+                    val subtotal = groupItems.sumOf { it.price * it.quantity }
+
+                    groups.add(
+                        OrderGroup(
+                            sellerId = sellerId,
+                            sellerName = sellerName,
+                            sellerPhone = sellerPhone,
+                            items = groupItems,
+                            subtotal = subtotal
+                        )
                     )
                 }
 
-                // Initialize inputs for each group
-                val initialInputs = orderGroups.associate { 
-                    it.sellerId to PaymentInputState() 
+                val inputs = groups.associate { it.sellerId to PaymentInputState() }
+
+                _state.update {
+                    it.copy(isLoading = false, orderGroups = groups, paymentInputs = inputs)
                 }
 
-                _state.update { 
-                    it.copy(
-                        isLoading = false, 
-                        orderGroups = orderGroups,
-                        paymentInputs = initialInputs
-                    ) 
-                }
             } catch (e: Exception) {
-                _state.update { it.copy(isLoading = false, error = e.message) }
+                _state.update { it.copy(isLoading = false, error = "Error al cargar: ${e.message}") }
             }
         }
     }
 
     fun onYapeCodeChange(sellerId: String, code: String) {
         _state.update { currentState ->
-            val currentInputs = currentState.paymentInputs.toMutableMap()
-            val currentInput = currentInputs[sellerId] ?: PaymentInputState()
-            currentInputs[sellerId] = currentInput.copy(yapeCode = code)
-            currentState.copy(paymentInputs = currentInputs)
+            val newInputs = currentState.paymentInputs.toMutableMap()
+            newInputs[sellerId] = newInputs[sellerId]?.copy(yapeCode = code) ?: PaymentInputState(yapeCode = code)
+            currentState.copy(paymentInputs = newInputs)
         }
     }
 
@@ -100,51 +146,58 @@ class CheckoutViewModel(
             _state.update { it.copy(isLoading = true) }
             try {
                 val currentUser = auth.currentUser ?: throw Exception("No autenticado")
-                val group = state.value.orderGroups.find { it.sellerId == sellerId } 
-                    ?: throw Exception("Grupo de orden no encontrado")
-                val input = state.value.paymentInputs[sellerId] 
-                    ?: throw Exception("Datos de pago no encontrados")
+                val group = state.value.orderGroups.find { it.sellerId == sellerId }
+                    ?: throw Exception("Grupo no encontrado")
+                val input = state.value.paymentInputs[sellerId]
+                    ?: throw Exception("Datos no encontrados")
 
                 if (input.yapeCode.isBlank()) {
-                    throw Exception("El código de operación es obligatorio")
+                    throw Exception("Ingresa el código de operación")
                 }
-                
-                // Get shipping address from ProductViewModel
-                val shippingAddress = productViewModel.getShippingAddress()
-                
+
+
+                val address = productViewModel.getShippingAddress()
+                    ?: throw Exception("Dirección no seleccionada")
+
+                val newOrderRef = firestore.collection("orders").document()
+
+
                 val order = Order(
-                    id = UUID.randomUUID().toString(),
+                    id = newOrderRef.id,
                     buyerId = currentUser.uid,
                     buyerName = currentUser.displayName ?: "Usuario",
-                    shippingAddress = shippingAddress,
+                    buyerPhone = address.phoneNumber,
+                    shippingAddress = address,
                     items = group.items,
                     totalAmount = group.subtotal,
-                    status = "PAGO_REPORTADO",
-                    paymentMethod = "YAPE",
-                    sellerId = group.sellerId,
-                    sellerIds = listOf(group.sellerId),
+                    status = "PENDING_VERIFICATION",
+                    paymentMethod = "YAPE (Cod: ${input.yapeCode})",
+
+
+                    sellerId = sellerId,
+                    sellerIds = listOf(sellerId),
                     yapeCode = input.yapeCode,
-                    deliveryType = "DELIVERY" // Default, should be configurable
+                    deliveryType = "DELIVERY",
+                    deliveryAddress = "${address.street}, ${address.city}",
+                    pickupPoint = ""
                 )
 
-                // Ideally we should save the yapeCode and proofUrl in the order too.
-                // Since the Order data class definition wasn't fully visible/modifiable in this step,
-                // we assume the repository handles it or we might need to update Order data class later.
-                // For this task, we proceed with creating the order.
-                
-                checkoutRepository.createOrder(order)
-                
-                // Remove this group from local state
+                // Guardar en Firestore
+                firestore.runBatch { batch ->
+                    batch.set(newOrderRef, order)
+                    group.items.forEach { item ->
+                        val cartRef = firestore.collection("users").document(currentUser.uid)
+                            .collection("cart").document(item.productId)
+                        batch.delete(cartRef)
+                    }
+                }.await()
+
+                // Actualizar UI
                 _state.update { currentState ->
-                    val remainingGroups = currentState.orderGroups.filter { it.sellerId != sellerId }
-                    val remainingInputs = currentState.paymentInputs.filterKeys { it != sellerId }
-                    currentState.copy(
-                        isLoading = false, 
-                        orderGroups = remainingGroups,
-                        paymentInputs = remainingInputs,
-                        paymentSuccess = true // Trigger success message
-                    )
+                    val remaining = currentState.orderGroups.filter { it.sellerId != sellerId }
+                    currentState.copy(isLoading = false, orderGroups = remaining, paymentSuccess = true)
                 }
+
             } catch (e: Exception) {
                 _state.update { it.copy(isLoading = false, error = e.message) }
             }
@@ -156,19 +209,11 @@ class CheckoutViewModel(
             val intent = Intent(Intent.ACTION_VIEW, Uri.parse("yape://qr/$phoneNumber"))
             context.startActivity(intent)
         } catch (e: Exception) {
-            // Fallback or error message if Yape is not installed
-             try {
-                // Try to open Play Store or just show a message
+            try {
                 val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://play.google.com/store/apps/details?id=com.bcp.innovacxion.yapeapp"))
                 context.startActivity(intent)
-            } catch (e2: Exception) {
-                // Ignore
-            }
+            } catch (e2: Exception) {}
         }
-    }
-
-    fun confirmPayment(group: OrderGroup) {
-        reportarPagoVendedor(group.sellerId)
     }
 
     fun resetPaymentSuccess() {

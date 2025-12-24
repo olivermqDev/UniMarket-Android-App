@@ -105,10 +105,6 @@ fun MyProductsScreen(
                                 onClick = {
                                     navController.navigate("${AppScreen.ProductDetail.route}/${product.id}")
                                 },
-                                onEditClick = {
-                                    // Navegar a editar producto (opcional)
-                                    navController.navigate("edit_product_screen/${product.id}")
-                                }
                             )
                         }
                     }
@@ -123,7 +119,6 @@ fun MyProductsScreen(
 fun MyProductCard(
     product: Product,
     onClick: () -> Unit,
-    onEditClick: () -> Unit
 ) {
     Card(
         onClick = onClick,
@@ -167,24 +162,6 @@ fun MyProductCard(
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // Botones de acción
-                Row(
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-
-                    // Botón de editar (solo visible para el dueño)
-                    IconButton(
-                        onClick = onEditClick,
-                        modifier = Modifier.size(24.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Edit,
-                            contentDescription = "Editar producto",
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-                    }
-                }
             }
         }
     }
